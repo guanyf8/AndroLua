@@ -1,0 +1,13 @@
+.gitattributes
+
+*.so
+*.o
+*.a
+
+manual/manual.html
+
+../../LuaScript/testes/time.txt
+../../LuaScript/testes/time-debug.txt
+
+../../LuaScript/testes/libs/all
+

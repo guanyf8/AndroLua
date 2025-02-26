@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'jacoco'
+}
+
+group = rootProject.group
+version = rootProject.version
+
+dependencies {
+    implementation 'org.jetbrains:annotations:24.1.0'
+    implementation 'com.badlogicgames.gdx:gdx-jnigen-loader:2.5.2'
+}
+
+tasks.withType(JavaCompile) {
+    options.deprecation = true
+}
+
+configurations {
+    instrumentedJars {
+        canBeConsumed = true
+        canBeResolved = false
+        extendsFrom api, implementation, runtimeOnly
+    }
+}
+
+artifacts {
+    instrumentedJars(jar)
+}
+
+tasks.named('jar') {
+    manifest {
+        attributes('Automatic-Module-Name': 'party.iroiro.luajava')
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
