@@ -13,6 +13,7 @@
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/lua53" />
             <option value="$PROJECT_DIR$/luajava" />
+            <option value="$PROJECT_DIR$/parallelSDK" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

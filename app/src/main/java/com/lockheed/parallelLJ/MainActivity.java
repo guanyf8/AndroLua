@@ -2,6 +2,9 @@ package com.lockheed.parallelLJ;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
+import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -10,7 +13,13 @@ import com.lockheed.parallelLJ.databinding.ActivityMainBinding;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
 import party.iroiro.luajava.AbstractLua;
 import party.iroiro.luajava.ClassPathLoader;
@@ -20,6 +29,8 @@ import party.iroiro.luajava.LuaNatives;
 import party.iroiro.luajava.lua53.Lua53;
 import party.iroiro.luajava.lua53.Lua53Natives;
 
+import com.lockheed.parallelsdk.parallelSDK;
+
 public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'parallelLJ' library on application startup.
@@ -28,40 +39,100 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private ActivityMainBinding binding;
-
+    private Context C=null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        AbstractLua L=new Lua53();
-        LuaNatives n=L.getLuaNatives();
-        L.setExternalLoader(new ExternalLoader() {
-            private String parentPath="./LuaScript";
+        C=this.getApplicationContext();
+        AbstractLua L1=parallelSDK.getInstance().LuaNewState();
+        L1.setExternalLoader(new ExternalLoader() {
+            AssetManager assetManager= C.getAssets();
+
             @Override
             public @Nullable Buffer load(String module, Lua L) {
-                String filepath=parentPath+module;
-                Buffer b = null;
-                return b;
+                String luaPath = module.replace('.', '/') + ".lua";
+
+                try (AssetFileDescriptor fd = assetManager.openFd(luaPath)) {
+                    // 获取文件长度（直接内存需要预知大小）
+                    long fileSize = fd.getLength();
+                    if (fileSize > Integer.MAX_VALUE) {
+                        throw new IOException("File too large: " + fileSize + " bytes");
+                    }
+
+                    // 创建直接内存缓冲区
+                    ByteBuffer directBuffer = ByteBuffer.allocateDirect((int) fileSize);
+
+                    // 使用NIO通道高效读取
+                    try (FileInputStream fis = fd.createInputStream()) {
+                        FileChannel channel = fis.getChannel();
+
+                        // 一次性读取到直接内存（比循环read更高效）
+                        while (directBuffer.hasRemaining()) {
+                            if (channel.read(directBuffer) == -1) {
+                                break;
+                            }
+                        }
+                    }
+
+                    // 切换为读取模式（position=0，limit=实际大小）
+                    directBuffer.flip();
+                    return directBuffer;
+                } catch (IOException e) {
+                    // 处理文件未找到等情况
+                    Log.e("LuaLoader", "Failed to load module: " + module, e);
+                    throw new RuntimeException(e);
+                }
             }
         });
-//        L.run(L.loadExternal("A.lua"),"test");
-//        Log.i("hello","hello");
-        L.run("local a=java.import('android.util.Log')\n" +
-                "\n" +
-                "a:i(\"tset\",\"hello from the lua\")");
+        AbstractLua L2=parallelSDK.getInstance().LuaNewState();
+        L2.setExternalLoader(new ExternalLoader() {
+            AssetManager assetManager= C.getAssets();
 
+            @Override
+            public @Nullable Buffer load(String module, Lua L) {
+                String luaPath = module.replace('.', '/') + ".lua";
 
+                try (AssetFileDescriptor fd = assetManager.openFd(luaPath)) {
+                    // 获取文件长度（直接内存需要预知大小）
+                    long fileSize = fd.getLength();
+                    if (fileSize > Integer.MAX_VALUE) {
+                        throw new IOException("File too large: " + fileSize + " bytes");
+                    }
 
+                    // 创建直接内存缓冲区
+                    ByteBuffer directBuffer = ByteBuffer.allocateDirect((int) fileSize);
+
+                    // 使用NIO通道高效读取
+                    try (FileInputStream fis = fd.createInputStream()) {
+                        FileChannel channel = fis.getChannel();
+
+                        // 一次性读取到直接内存（比循环read更高效）
+                        while (directBuffer.hasRemaining()) {
+                            if (channel.read(directBuffer) == -1) {
+                                break;
+                            }
+                        }
+                    }
+
+                    // 切换为读取模式（position=0，limit=实际大小）
+                    directBuffer.flip();
+                    return directBuffer;
+                } catch (IOException e) {
+                    // 处理文件未找到等情况
+                    Log.e("LuaLoader", "Failed to load module: " + module, e);
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+
+        L1.loadExternal("to_s");
+        L2.loadExternal("d_s");
         // Example of a call to a native method
         TextView tv = binding.sampleText;
-        tv.setText(stringFromJNI());
+        String content="hello world from c++!!!!!";
+        tv.setText(content);
     }
-
-    /**
-     * A native method that is implemented by the 'parallelLJ' native library,
-     * which is packaged with this application.
-     */
-    public native String stringFromJNI();
 }

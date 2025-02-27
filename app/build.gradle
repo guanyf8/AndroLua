@@ -19,9 +19,19 @@ android {
                 cppFlags '-std=c++11'
             }
         }
-    }
 
+        aaptOptions {
+            noCompress "lua"
+        }
+    }
+    aaptOptions {
+        noCompress "lua"
+    }
     buildTypes {
+        debug {
+            debuggable true
+            jniDebuggable true
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -57,6 +67,7 @@ dependencies {
     implementation libs.constraintlayout
     implementation project(':luajava')
     implementation project(':lua53')
+    implementation project(":parallelSDK")
 //    implementation files("../lib/luajava-4.0.3-SNAPSHOT.jar")
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

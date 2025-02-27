@@ -31,3 +31,4 @@ rootProject.name = "ParallelLJ"
 include ":app",
         ":lua53",
         ":luajava"
+include ':parallelSDK'
