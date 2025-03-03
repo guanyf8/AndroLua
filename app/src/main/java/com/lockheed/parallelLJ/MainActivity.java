@@ -127,9 +127,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-        L1.loadExternal("to_s");
-        L2.loadExternal("d_s");
+        L1.loadExternal("java_object_send");
+        L1.pCall(0,0);
+        L2.loadExternal("java_object_recv");
+        L2.pCall(0,0);
         // Example of a call to a native method
         TextView tv = binding.sampleText;
         String content="hello world from c++!!!!!";

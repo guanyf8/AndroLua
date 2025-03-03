@@ -1,10 +1,10 @@
 #ifndef LUAJAVAAMALG_H
 #define LUAJAVAAMALG_H
 
-#include "jua.cpp"
-#include "invokespecial.cpp"
-#include "importer.cpp"
-#include "juaapi.cpp"
-#include "jualib.cpp"
+#include "jua.c"
+#include "invokespecial.c"
+#include "importer.c"
+#include "juaapi.c"
+#include "jualib.c"
 
 #endif /* LUAJAVAAMALG_H! */

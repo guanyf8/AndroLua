@@ -31,14 +31,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 include_directories(
         ../../../../jni/lua53
-        ${CMAKE_SOURCE_DIR}/src/main/cpp/include  # 如果有额外的头文件目录
+        ${CMAKE_SOURCE_DIR}/src/main/cpp  # 如果有额外的头文件目录
+        ../../../../jni/luajava
 )
+
+file(GLOB source_files "*.c")
 
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
-       serialize.c
-        parallelsdk.c)
+        ${source_files})
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this

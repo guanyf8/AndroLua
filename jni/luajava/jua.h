@@ -1,7 +1,10 @@
 #ifndef JUA_H
 #define JUA_H
 
-#include "lua.hpp"
+#include <stdbool.h>
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 #include "jni.h"
 
 #define JAVA_STATE_INDEX "__jmainstate__"

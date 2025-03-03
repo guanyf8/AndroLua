@@ -1,7 +1,10 @@
 
-local s = require "serialize"
+--local s = require "serialize"
 
 local table
-s.unpack(table)
+local data
+local t=taskqueue.poptask()
+table,a,b=seri.unpack(t)
 
-print(table)
+
+print(table,a,b)

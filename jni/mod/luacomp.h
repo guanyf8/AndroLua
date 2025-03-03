@@ -1,9 +1,11 @@
 #ifndef LUACOMP_H
 #define LUACOMP_H
 
-#include "lua.hpp"
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 
-#include <cstring>
+#include <string.h>
 
 /**
  * Opens individual libraries when one does not want them all
@@ -31,7 +33,7 @@ luaL_Reg allAvailableLibs[] = {
 static void luaJ_openlib(lua_State * L, const char * libName) {
     const luaL_Reg *lib = allAvailableLibs;
     for (; lib->func != NULL; lib++) {
-        if (std::strcmp(lib->name, libName) == 0) {
+        if (strcmp(lib->name, libName) == 0) {
             luaJ_openlib_call(L, lib->name, lib->func);
             return;
         }

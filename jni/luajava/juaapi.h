@@ -1,7 +1,9 @@
 #ifndef JUAAPI_H
 #define JUAAPI_H
 
-#include "lua.hpp"
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 #include "jni.h"
 
 #include "jua.h"
@@ -11,19 +13,32 @@
  * and thus raises errors to the lua environment.
  */
 
-template <const char *R>
-static int gc(lua_State * L) {
-  jobject * data = (jobject *) luaL_checkudata(L, 1, R);
+
+static int gc_CLASS(lua_State * L) {
+  jobject * data = (jobject *) luaL_checkudata(L, 1, JAVA_CLASS_META_REGISTRY);
   JNIEnv * env = getJNIEnv(L);
   env->DeleteGlobalRef(*data);
   return 0;
 }
 
+static int gc_OBJECT(lua_State * L) {
+    jobject * data = (jobject *) luaL_checkudata(L, 1, JAVA_OBJECT_META_REGISTRY);
+    JNIEnv * env = getJNIEnv(L);
+    env->DeleteGlobalRef(*data);
+    return 0;
+}
+
+static int gc_ARRAY(lua_State * L) {
+    jobject * data = (jobject *) luaL_checkudata(L, 1, JAVA_ARRAY_META_REGISTRY);
+    JNIEnv * env = getJNIEnv(L);
+    env->DeleteGlobalRef(*data);
+    return 0;
+}
+
 /**
  * Expects the obj is a global ref
  */
-template <const char *R>
-static int pushJ(lua_State * L, jobject obj) {
+static int pushJ(lua_State * L, jobject obj,const char *R) {
   jobject * data = (jobject *) lua_newuserdata(L, sizeof(jobject));
   *data = obj;
 

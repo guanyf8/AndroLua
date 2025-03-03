@@ -1,7 +1,9 @@
 #ifndef CUSTOM_H
 #define CUSTOM_H
 
-#include "lua.hpp"
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 
 int luaopen_jua(lua_State * L) {
     luaL_newlib(L, javalib);
