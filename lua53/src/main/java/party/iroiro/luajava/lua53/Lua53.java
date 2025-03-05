@@ -35,7 +35,7 @@ import static party.iroiro.luajava.lua53.Lua53Consts.*;
  * A thin wrapper around a Lua 5.3 Lua state
  */
 public class Lua53 extends AbstractLua {
-    private final static AtomicReference<Lua53Natives> natives = new AtomicReference<>();
+    protected final static AtomicReference<Lua53Natives> natives = new AtomicReference<>();
 
     /**
      * Creates a new Lua state

@@ -4,18 +4,19 @@
 
 #include "TaskQueue.h"
 #include "lua-seri.h"
-#include "lauxlib.h"
-#include <stdlib.h>
+#include <cstdlib>
+#include <map>
 
 //原子操作+自旋锁实现producer-consumer问题
+std::map<int,CirQue*> queue_record;
 
-CirQue queue;
-
-CirQue* CirQueInit(CirQue* q) {
+CirQue* CirQueInit(int id) {
+    CirQue * q=(CirQue*) malloc(sizeof(CirQue));
     atomic_init(&q->f, 0);
     atomic_init(&q->r, 0);
     atomic_init(&q->size, 0);
     atomic_flag_clear(&q->lock);
+    queue_record.insert({id,q});
     return q;
 }
 
@@ -23,7 +24,7 @@ void CirQueClose(CirQue* que){
     free(que);
 }
 
-char PopTask(CirQue* q,task* out) {
+char PopTask(CirQue* q, task_item* out) {
     while (atomic_flag_test_and_set(&q->lock))
         ;
 
@@ -39,7 +40,7 @@ char PopTask(CirQue* q,task* out) {
     return true;
 }
 
-char PushTask(CirQue* q, task item) {
+char PushTask(CirQue* q, task_item item) {
     while (atomic_flag_test_and_set(&q->lock))
         ; // 自旋等待
 
@@ -57,7 +58,7 @@ char PushTask(CirQue* q, task item) {
 
 
 int luatask_push(lua_State* L){
-    task temp={0,0,0,0};
+    task_item temp={0, 0, 0, 0};
 //    buffer,size,target_lua_id,type
     switch(lua_gettop(L)){
         case 4:
@@ -72,14 +73,19 @@ int luatask_push(lua_State* L){
         default:
             luaL_error(L,"invalid args");
     }
-    PushTask(&queue,temp);
+    PushTask(queue_record.at(temp.target_id),temp);
+
     return 0;
 }
 
 
+
 int luatask_pop(lua_State* L){
-    task popped_task;
-    char result=PopTask(&queue,&popped_task); // 从队列弹出一个任务
+    task_item popped_task;
+    lua_getglobal(L,"tqueue");
+    CirQue* q= (CirQue *)(lua_touserdata(L, -1));
+    lua_pop(L,1);   //恢复栈平衡
+    char result=PopTask(q,&popped_task); // 从队列弹出一个任务
 
     if (result == 0) {
         lua_pushnil(L); // 队列为空时返回 nil

@@ -3,6 +3,7 @@ package com.lockheed.parallelsdk;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.os.Looper;
 import android.util.Log;
 
 import org.jetbrains.annotations.Nullable;
@@ -18,7 +19,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import party.iroiro.luajava.AbstractLua;
 import party.iroiro.luajava.ExternalLoader;
 import party.iroiro.luajava.Lua;
-import party.iroiro.luajava.lua53.Lua53;
 
 //需要在主线程进行初始化，需要MainLua来做一些事情
 public class parallelSDK {
@@ -52,9 +52,9 @@ public class parallelSDK {
     }
 
     public boolean SDKInit(Context context){
-        MainLua=LuaNewState();
+        MainLua=LuaNewState(Looper.getMainLooper());
         C=context;
-        LuaNewState().setExternalLoader(new ExternalLoader() {
+        MainLua.setExternalLoader(new ExternalLoader() {
             AssetManager assetManager=C.getAssets();
 
             @Override
@@ -91,12 +91,34 @@ public class parallelSDK {
         return MainLua!=null;
     }
 
-    public AbstractLua LuaNewState(){
-        AbstractLua L=new Lua53();
-        SDKInitLua(L.getPointer());
+    private AbstractLua LuaNewState(Looper looper){
+        AbstractLua L=new SafeLua53(looper);
+        //为luaState准备C function，传入id和queue
+        SDKLuaInit(L.getPointer(),L.getId());
+
         return L;
     }
 
+    public AbstractLua LuaNewState(){
+        AbstractLua L=new SafeLua53();
+        //为luaState准备C function，传入id和queue
+        SDKLuaInit(L.getPointer(),L.getId());
 
-    public native long SDKInitLua(long luaState);
+        return L;
+    }
+
+    public int luaNewStateC(){
+        AbstractLua L=new SafeLua53();
+        SDKLuaInit(L.getPointer(),L.getId());
+        return L.getId();
+    }
+
+    public static void Tick(int id){
+        AbstractLua L=AbstractLua.getInstance(id);
+        //这里异步扔走了
+        ((SafeLua53)L).run("local a=require(\"cross_vm\")" +
+                "a.analyzer(thread.processtask())");
+    }
+
+    public native long SDKLuaInit(long luaState,int id);
 }

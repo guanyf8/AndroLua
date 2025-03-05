@@ -735,22 +735,25 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
             if(cookie==TYPE_USERDATA_JOBJECT){
                 jobject* old_userdata= get_pointer(L,rb);
                 jobject* data =(jobject*)lua_newuserdata(L, sizeof(jobject));
-                JNIEnv* env=SDKEnv;
+                JNIEnv* env;
+                (*jvm)->AttachCurrentThread(jvm,&env,NULL);
                 //引用到old_userdata也是一个jobiect类型的引用的地址
                 // 创建一个新引用给这个lua_vm，必免GC错误，反正引用不值钱
                 jobject newGloRef =(*env)->NewGlobalRef(env,*old_userdata);
-                *data = newGloRef;
 
+                *data = newGloRef;
+                (*jvm)->DetachCurrentThread(jvm);
                 luaL_setmetatable(L, "__jobject__");
             }else if(cookie==TYPE_USERDATA_JCLASS){
                 jobject* old_userdata= get_pointer(L,rb);
                 jobject* data =(jobject*)lua_newuserdata(L, sizeof(jobject));
-                JNIEnv* env=SDKEnv;
+                JNIEnv* env;
+                (*jvm)->AttachCurrentThread(jvm,&env,NULL);
                 //引用到old_userdata也是一个jobiect类型的引用的地址
                 // 创建一个新引用给这个lua_vm，必免GC错误，反正引用不值钱
                 jobject newGloRef =(*env)->NewGlobalRef(env,*old_userdata);
                 *data = newGloRef;
-
+                (*jvm)->DetachCurrentThread(jvm);
                 luaL_setmetatable(L, "__jclass__");
             }else if (cookie == TYPE_USERDATA_CFUNCTION)
                 lua_pushcfunction(L, (lua_CFunction)get_pointer(L, rb));

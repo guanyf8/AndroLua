@@ -7,7 +7,7 @@
 
 #include <jni.h>
 
-extern JNIEnv* SDKEnv;
-
+//extern JNIEnv* SDKEnv;
+extern JavaVM *jvm;
 
 #endif //PARALLELLJ_JNINFO_H

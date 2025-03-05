@@ -13,4 +13,7 @@ int luaseri_remove(lua_State *L);
 
 void * seri_packstring(const char * str, int sz, void *p, size_t *output_sz);
 
+LUAMOD_API int
+luaopen_seri(lua_State *L);
+
 #endif

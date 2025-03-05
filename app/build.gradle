@@ -51,6 +51,7 @@ android {
     sourceSets {
         main {
             jniLibs.srcDirs = ['../lua53/libs']
+            assets.srcDirs = ['src/main/assets']
         }
     }
 

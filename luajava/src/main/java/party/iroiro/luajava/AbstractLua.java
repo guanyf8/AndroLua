@@ -49,7 +49,7 @@ public abstract class AbstractLua implements Lua {
     protected final ReferenceQueue<LuaReferable> recyclableReferences;
     protected final ConcurrentHashMap<Integer, LuaReference<?>> recordedReferences;
 
-    static AbstractLua getInstance(int lid) {
+    public static AbstractLua getInstance(int lid) {
         return instances.get(lid);
     }
 

@@ -960,8 +960,8 @@ checkerr("not enough memory", load"local a={}; for i=1,100000 do a[i]=i end")
 T.totalmem(0)          -- restore high limit
 
 -- test memory errors; increase memory limit in small steps, so that
--- we get memory errors in different parts of a given task, up to there
--- is enough memory to complete the task without errors
+-- we get memory errors in different parts of a given task_item, up to there
+-- is enough memory to complete the task_item without errors
 function testamem (s, f)
   collectgarbage(); collectgarbage()
   local M = T.totalmem()

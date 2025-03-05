@@ -156,7 +156,7 @@ os.remove(D'A.lua')
 AA = {}
 try('A', 'A.lc', AA)  -- now must find second option
 assert(package.searchpath("A", package.path) == D"A.lc")
-assert(require("A") == AA)
+assert(require("SDK-lua.test.A") == AA)
 AA = false
 try('K', 'L', false)     -- default option
 try('K', 'L', false)     -- default option (should reload it)

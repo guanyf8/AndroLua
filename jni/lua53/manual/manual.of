@@ -2424,7 +2424,7 @@ because its frame in the C stack was destroyed by the yield.
 Instead, Lua calls a @def{continuation function},
 which was given as an argument to the callee function.
 As the name implies,
-the continuation function should continue the task
+the continuation function should continue the task_item
 of the original function.
 
 As an illustration, consider the following function:

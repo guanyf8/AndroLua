@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.os.Bundle;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -29,6 +30,7 @@ import party.iroiro.luajava.LuaNatives;
 import party.iroiro.luajava.lua53.Lua53;
 import party.iroiro.luajava.lua53.Lua53Natives;
 
+import com.lockheed.parallelsdk.SafeLua53;
 import com.lockheed.parallelsdk.parallelSDK;
 
 public class MainActivity extends AppCompatActivity {
@@ -55,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
             public @Nullable Buffer load(String module, Lua L) {
                 String luaPath = module.replace('.', '/') + ".lua";
 
-                try (AssetFileDescriptor fd = assetManager.openFd(luaPath)) {
+                try (AssetFileDescriptor fd = assetManager.openFd("SDK-lua/"+luaPath)) {
                     // 获取文件长度（直接内存需要预知大小）
                     long fileSize = fd.getLength();
                     if (fileSize > Integer.MAX_VALUE) {
@@ -90,12 +92,13 @@ public class MainActivity extends AppCompatActivity {
         AbstractLua L2=parallelSDK.getInstance().LuaNewState();
         L2.setExternalLoader(new ExternalLoader() {
             AssetManager assetManager= C.getAssets();
+            String[] name=assetManager.getLocales();
 
             @Override
             public @Nullable Buffer load(String module, Lua L) {
                 String luaPath = module.replace('.', '/') + ".lua";
 
-                try (AssetFileDescriptor fd = assetManager.openFd(luaPath)) {
+                try (AssetFileDescriptor fd = assetManager.openFd("SDK-lua/"+luaPath)) {
                     // 获取文件长度（直接内存需要预知大小）
                     long fileSize = fd.getLength();
                     if (fileSize > Integer.MAX_VALUE) {
@@ -127,10 +130,38 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        L1.loadExternal("java_object_send");
-        L1.pCall(0,0);
-        L2.loadExternal("java_object_recv");
-        L2.pCall(0,0);
+        L1.openLibraries();
+        L2.openLibraries();
+//        Runnable r=new Runnable() {
+//            @Override
+//            public void run() {
+//
+//            }
+//        };
+//        Thread t=new Thread(r);
+//        t.start();
+        while(((SafeLua53) L1)._handler==null);
+
+        ((SafeLua53) L1)._handler.post(new Runnable() {
+               @Override
+               public void run() {
+                   Log.d("LUA1",String.valueOf(L1.getId()));
+                   L1.loadExternal("java_object_send");
+                   L1.pCall(0,0);
+               }
+           }
+        );
+
+        while(((SafeLua53) L2)._handler==null);
+
+        ((SafeLua53)L2)._handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Log.d("LUA2",String.valueOf(L2.getId()));
+//                L2.loadExternal("d_s");
+//                L2.pCall(0,0);
+            }
+        });
         // Example of a call to a native method
         TextView tv = binding.sampleText;
         String content="hello world from c++!!!!!";
