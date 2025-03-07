@@ -20,8 +20,10 @@ CirQue* CirQueInit(int id) {
     return q;
 }
 
-void CirQueClose(CirQue* que){
+void CirQueClose(int id){
+    CirQue* que=queue_record.at(id);
     free(que);
+    queue_record.erase(id);
 }
 
 char PopTask(CirQue* q, task_item* out) {

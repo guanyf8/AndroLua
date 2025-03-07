@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Timer;
 
 import party.iroiro.luajava.AbstractLua;
 import party.iroiro.luajava.ClassPathLoader;
@@ -49,89 +50,11 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         C=this.getApplicationContext();
+        parallelSDK.getInstance().SDKInit(C);
         AbstractLua L1=parallelSDK.getInstance().LuaNewState();
-        L1.setExternalLoader(new ExternalLoader() {
-            AssetManager assetManager= C.getAssets();
 
-            @Override
-            public @Nullable Buffer load(String module, Lua L) {
-                String luaPath = module.replace('.', '/') + ".lua";
-
-                try (AssetFileDescriptor fd = assetManager.openFd("SDK-lua/"+luaPath)) {
-                    // 获取文件长度（直接内存需要预知大小）
-                    long fileSize = fd.getLength();
-                    if (fileSize > Integer.MAX_VALUE) {
-                        throw new IOException("File too large: " + fileSize + " bytes");
-                    }
-
-                    // 创建直接内存缓冲区
-                    ByteBuffer directBuffer = ByteBuffer.allocateDirect((int) fileSize);
-
-                    // 使用NIO通道高效读取
-                    try (FileInputStream fis = fd.createInputStream()) {
-                        FileChannel channel = fis.getChannel();
-
-                        // 一次性读取到直接内存（比循环read更高效）
-                        while (directBuffer.hasRemaining()) {
-                            if (channel.read(directBuffer) == -1) {
-                                break;
-                            }
-                        }
-                    }
-
-                    // 切换为读取模式（position=0，limit=实际大小）
-                    directBuffer.flip();
-                    return directBuffer;
-                } catch (IOException e) {
-                    // 处理文件未找到等情况
-                    Log.e("LuaLoader", "Failed to load module: " + module, e);
-                    throw new RuntimeException(e);
-                }
-            }
-        });
         AbstractLua L2=parallelSDK.getInstance().LuaNewState();
-        L2.setExternalLoader(new ExternalLoader() {
-            AssetManager assetManager= C.getAssets();
-            String[] name=assetManager.getLocales();
 
-            @Override
-            public @Nullable Buffer load(String module, Lua L) {
-                String luaPath = module.replace('.', '/') + ".lua";
-
-                try (AssetFileDescriptor fd = assetManager.openFd("SDK-lua/"+luaPath)) {
-                    // 获取文件长度（直接内存需要预知大小）
-                    long fileSize = fd.getLength();
-                    if (fileSize > Integer.MAX_VALUE) {
-                        throw new IOException("File too large: " + fileSize + " bytes");
-                    }
-
-                    // 创建直接内存缓冲区
-                    ByteBuffer directBuffer = ByteBuffer.allocateDirect((int) fileSize);
-
-                    // 使用NIO通道高效读取
-                    try (FileInputStream fis = fd.createInputStream()) {
-                        FileChannel channel = fis.getChannel();
-
-                        // 一次性读取到直接内存（比循环read更高效）
-                        while (directBuffer.hasRemaining()) {
-                            if (channel.read(directBuffer) == -1) {
-                                break;
-                            }
-                        }
-                    }
-
-                    // 切换为读取模式（position=0，limit=实际大小）
-                    directBuffer.flip();
-                    return directBuffer;
-                } catch (IOException e) {
-                    // 处理文件未找到等情况
-                    Log.e("LuaLoader", "Failed to load module: " + module, e);
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-        L1.openLibraries();
-        L2.openLibraries();
 //        Runnable r=new Runnable() {
 //            @Override
 //            public void run() {
@@ -140,24 +63,26 @@ public class MainActivity extends AppCompatActivity {
 //        };
 //        Thread t=new Thread(r);
 //        t.start();
-        while(((SafeLua53) L1)._handler==null);
+        long start=System.currentTimeMillis();
+        while(((SafeLua53) L1)._handler==null ||((SafeLua53) L2)._handler==null);
+        long end=System.currentTimeMillis();
+
+        Log.i("Time",String.valueOf(end-start));
 
         ((SafeLua53) L1)._handler.post(new Runnable() {
                @Override
                public void run() {
-                   Log.d("LUA1",String.valueOf(L1.getId()));
-                   L1.loadExternal("java_object_send");
+                   Log.d("Lua"+String.valueOf(L1.getId()),"init done");
+                   L1.loadExternal("test/java_object_send");
                    L1.pCall(0,0);
                }
            }
         );
 
-        while(((SafeLua53) L2)._handler==null);
-
         ((SafeLua53)L2)._handler.post(new Runnable() {
             @Override
             public void run() {
-                Log.d("LUA2",String.valueOf(L2.getId()));
+                Log.d("Lua"+String.valueOf(L2.getId()),"init done");
 //                L2.loadExternal("d_s");
 //                L2.pCall(0,0);
             }

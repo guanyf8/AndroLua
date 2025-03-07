@@ -40,6 +40,7 @@
 #define TYPE_USERDATA_CFUNCTION 1
 #define TYPE_USERDATA_JOBJECT 2
 #define TYPE_USERDATA_JCLASS 3
+#define TYPE_USERDATA_LFUNCTION 4
 
 #define TYPE_SHORT_STRING 3
 // hibits 0~31 : len
@@ -52,7 +53,7 @@
 // hibits 0~30 : ref ancestor id , 31 : extend id ( number )
 #define TYPE_REF 7
 
-#define MAX_COOKIE 32
+#define MAX_COOKIE 32    //2^5
 #define EXTEND_NUMBER (MAX_COOKIE-1)
 #define COMBINE_TYPE(t,v) ((t) | (v) << 3)
 
@@ -376,6 +377,9 @@ wb_table(lua_State *L, struct write_block *wb, int index) {
 		index = lua_gettop(L) + index + 1;
 	}
 	mark_table(L, wb, index);
+    if(lua_istable(L,index)){
+        int newby=0;
+    }
 	if (luaL_getmetafield(L, index, "__pairs") != LUA_TNIL) {
 		wb_table_metapairs(L, wb, index);
 	} else {
@@ -457,6 +461,11 @@ ref_object(lua_State *L, struct write_block *b, int index) {
 	}
 }
 
+static int writer(lua_State *L, const void* p, size_t size, void* B) {
+    luaL_addlstring((luaL_Buffer *) B, (const char*)p, size);
+    return 0;
+}
+
 static void
 pack_one(lua_State *L, struct write_block *b, int index) {
 	struct stack *s = &b->s;
@@ -488,12 +497,40 @@ pack_one(lua_State *L, struct write_block *b, int index) {
 		wb_pointer(b, lua_touserdata(L,index), TYPE_USERDATA_POINTER);
 		break;
 	case LUA_TFUNCTION: {
+        //todo 在跨vm大肆造代理的条件下是否有必要把整个函数传过去，会不会快一点
+        //todo 不做不行，因为要实现runnable
+        //todo 但是需要考虑一个问题：如何界定是否有上值。以及后续是否真的要上值同步
+//        const char* ret=lua_getupvalue(L, index, 1);
+//        const char* ret2= lua_getupvalue(L,index,2);
+//        if (ret!= NULL) {
+//            luaL_error(L, "Only light C function or Lua function without upvalue can be serialized");
+//        }
 		lua_CFunction func = lua_tocfunction(L,index);
-		if (func == NULL || lua_getupvalue(L, index, 1) != NULL) {
-			luaL_error(L, "Only light C function can be serialized");
-		}
-		wb_pointer(b, (void *)func, TYPE_USERDATA_CFUNCTION);
-		break; }
+		if (func == NULL ) {
+            //lua function
+            lua_pushvalue(L,index);
+            luaL_Buffer buffer;
+            luaL_buffinit(L, &buffer);
+            if (lua_dump(L, writer, &buffer, 0) != 0) {
+                luaL_error(L,"lua function dump fail");
+            }
+            // 栈顶现在是字符串
+            luaL_pushresult(&buffer);
+            wb_pointer(b,(void*)func,TYPE_USERDATA_LFUNCTION);
+            //todo 写入长string
+            size_t sz = 0;
+            const char *str = lua_tolstring(L,-1,&sz);
+            wb_string(b, str, (int)sz);
+            lua_pop(L,2);
+            break;
+		}else{
+            if (lua_getupvalue(L, index, 1)!= NULL) {
+                luaL_error(L, "Only light C function can be serialized");
+            }
+            wb_pointer(b, (void *)func, TYPE_USERDATA_CFUNCTION);
+            break;
+        }
+		 }
 	case LUA_TTABLE: {
 		if (index < 0) {
 			index = lua_gettop(L) + index + 1;
@@ -506,6 +543,15 @@ pack_one(lua_State *L, struct write_block *b, int index) {
 			s->ancestor[s->depth] = index;
 		++s->depth;
 		wb_table(L, b, index);
+        //todo
+        int a= lua_gettop(L);
+        //在每个表后面必跟一个元方法
+        if(lua_getmetatable(L,index)){
+            pack_one(L,b,-1);
+            lua_pop(L,1);     //
+        }else{
+            wb_nil(b);
+        }
 		--s->depth;
 		break;
 	}
@@ -757,6 +803,33 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
                 luaL_setmetatable(L, "__jclass__");
             }else if (cookie == TYPE_USERDATA_CFUNCTION)
                 lua_pushcfunction(L, (lua_CFunction)get_pointer(L, rb));
+            else if (cookie == TYPE_USERDATA_LFUNCTION){
+                uint8_t type;
+                rb_read(rb,sizeof(void*));
+
+
+                const uint8_t *t = rb_read(rb, sizeof(type));
+                if (t==NULL) {
+                    invalid_stream(L, rb);
+                }
+                type = *t;
+                push_value(L, rb, type & 0x7, type>>3);
+                size_t len;
+                const char* data = lua_tolstring(L, -1, &len);
+                lua_pop(L,1);
+                // 3. 加载二进制 chunk
+                int status = luaL_loadbuffer(L, data, len, "binary chunk");
+                switch (status) {
+                    case LUA_OK:
+                        break;
+                    case LUA_ERRSYNTAX:
+                        luaL_error(L, "syntax error during load");
+                    case LUA_ERRMEM:
+                        luaL_error(L, "memory allocation error");
+                    default:
+                        luaL_error(L, "unknown load error");
+                }
+            }
             else
 				luaL_error(L, "Invalid userdata");
 
@@ -791,6 +864,24 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
 	case TYPE_TABLE:
 	case TYPE_TABLE_MARK:
 		unpack_table(L,rb,cookie,type);
+        //todo
+//        //metatable紧随其后
+        const uint8_t *t = rb_read(rb, 1);
+        if (t==NULL){
+            luaL_error(L, "went wrong when unpack table: no metatable found");
+            break;
+        }
+        type = *t;
+        if((type&0x7)==TYPE_TABLE){
+            push_value(L, rb,type & 0x7,type>>3);
+            lua_setmetatable(L,-2);
+        }else if((type&0x7)==TYPE_BOOLEAN && type>>3==TYPE_BOOLEAN_NIL){
+            lua_getglobal(L,"print");
+            lua_pushstring(L,"no metatable for the table");
+            lua_call(L,1,0);
+        }
+//
+
 		break;
 	case TYPE_REF:
 		unpack_ref(L,rb,cookie);
@@ -799,6 +890,7 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
 		invalid_stream(L,rb);
 		break;
 	}
+    int a= lua_gettop(L);
 }
 
 static void
@@ -960,6 +1052,7 @@ int
 luaseri_pack(lua_State *L) {
 	int sz = 0;
 	void * buffer = seri_pack(L, 0, &sz);
+    lua_pop(L,2);   //里面push了两个nil，释放掉
 	lua_pushlightuserdata(L, buffer);
 	lua_pushinteger(L, sz);
 	return 2;

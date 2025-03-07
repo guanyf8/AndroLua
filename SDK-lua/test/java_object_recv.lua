@@ -13,8 +13,13 @@ local M={}
 --local name=a:getName()
 --local age=a:getAge()
 
-M.test=function(name,age)
+M.test=function(name,age,callback,t)
     print("the object name is "..name.." age is "..age)
+    print(callback)
+    callback("nice",function(args)
+        print("response:"..args)
+    end)
+    t.a("surprise")
 end
 
 return M

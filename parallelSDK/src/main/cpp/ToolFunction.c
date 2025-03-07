@@ -194,8 +194,15 @@ int lua_print(lua_State *L) {
 
     luaL_pushresult(&buf);
     const char *output = lua_tostring(L, -1);
-    __android_log_write(ANDROID_LOG_DEBUG, "Lua", output);
+    int ID= lua_getglobal(L,"ID");
+    const char *idStr = lua_tostring(L, -1);
+    if (idStr == NULL) {
+        idStr = "";
+    }
 
+    char buffer[8];
+    snprintf(buffer, sizeof(buffer), "Lua%s", idStr);
+    __android_log_write(ANDROID_LOG_DEBUG, buffer, output);
     lua_pop(L, 1);  // 弹出生成的字符串
     return 0;
 }

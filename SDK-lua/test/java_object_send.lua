@@ -10,10 +10,40 @@
 --a:setAge(18)
 --
 local vm=require("cross_vm")
+local thread=require("threadAPI")
+local vmvm=_thread.new()
 
-local recv=vm.cross_vm_require(1,"java_object_recv")
+thread.run(function()
+    print("in runnable I can fly")
+end)
 
-recv.test("mike",18)
+
+local recv=vm.cross_vm_require(vmvm,"test.java_object_recv")
+
+local r=2
+local ff=function(arg)
+        print("f(x) in g(x)"..arg)
+    end
+
+local index = 1
+while true do
+    local name = debug.getupvalue(ff, index)
+    if not name then
+        break
+    end
+    print(name)
+    index = index + 1
+end
+--local t={b=6,a=function(arg)
+--    print("f(x) in g(x)"..arg..tostring(r))
+--end}
+
+--print(_ENV)
+
+recv.test("mike",18,function(arg,callback_)
+    print("hahaha:"..arg)
+    callback_("callback in A")
+end,{b=6,a=ff})
 
 print("task done")
 

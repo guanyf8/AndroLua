@@ -30,9 +30,9 @@ Java_com_lockheed_parallelsdk_parallelSDK_SDKLuaInit(JNIEnv *env, jobject thiz, 
     lua_setglobal(L, "print");
     lua_pushcfunction(L, lua_my_tostring);
     lua_setglobal(L,"tostring");
-    luaL_requiref(L, "seri", luaopen_seri, 1);
-    luaL_requiref(L,"queue",luaopen_taskqueue,1);
-    luaL_requiref(L,"thread",luaopen_thread,1);
+    luaL_requiref(L, "_seri", luaopen_seri, 1);
+    luaL_requiref(L,"_queue",luaopen_taskqueue,1);
+    luaL_requiref(L,"_thread",luaopen_thread,1);
     lua_pushinteger(L,id);
     lua_setglobal(L,"ID");
     CirQue * q=CirQueInit(id);

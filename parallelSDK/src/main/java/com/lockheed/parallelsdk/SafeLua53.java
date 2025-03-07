@@ -2,6 +2,7 @@ package com.lockheed.parallelsdk;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -33,11 +34,7 @@ public class SafeLua53 extends Lua53 {
     public SafeLua53(Looper looper){
         super();
         this.looper=looper;
-        if(_handler==null) {
-            _handler = new Handler(Looper.getMainLooper());
-        }else{
-            _handler = new Handler(looper);
-        }
+        _handler = new Handler(looper);
     }
 
     public SafeLua53(long L, int id, AbstractLua main){
@@ -60,9 +57,11 @@ public class SafeLua53 extends Lua53 {
 
     @Override
     public void run(String script) throws LuaException {
+        while(_handler==null);
         _handler.post(new Runnable() {
             @Override
             public void run() {
+                Log.d("Lua"+String.valueOf(getId()),"executing script");
                 call_parent_run(script);
             }
         });
@@ -73,6 +72,7 @@ public class SafeLua53 extends Lua53 {
         _handler.post(new Runnable() {
             @Override
             public void run() {
+                Log.d("Lua"+String.valueOf(getId()),"executing script");
                 call_parent_run(buffer, name);
             }
         });

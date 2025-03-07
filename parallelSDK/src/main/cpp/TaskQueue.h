@@ -40,7 +40,7 @@ typedef struct {
 extern map<int,CirQue*> queue_record;
 
 CirQue* CirQueInit(int id);
-void CirQueClose(CirQue* que);
+void CirQueClose(int id);
 char PopTask(CirQue* q, task_item* out);
 char PushTask(CirQue* q, task_item item);
 int luatask_push(lua_State* L);

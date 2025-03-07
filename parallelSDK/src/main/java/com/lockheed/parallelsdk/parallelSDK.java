@@ -52,47 +52,16 @@ public class parallelSDK {
     }
 
     public boolean SDKInit(Context context){
-        MainLua=LuaNewState(Looper.getMainLooper());
         C=context;
-        MainLua.setExternalLoader(new ExternalLoader() {
-            AssetManager assetManager=C.getAssets();
-
-            @Override
-            public @Nullable Buffer load(String module, Lua L) {String luaPath = module.replace('.', '/') + ".lua";
-
-                try {
-                    // 打开assets文件描述符
-                    AssetFileDescriptor fd = assetManager.openFd(luaPath);
-
-                    // 读取文件内容到字节数组
-                    InputStream is = fd.createInputStream();
-                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-                    byte[] data = new byte[1024];
-                    int bytesRead;
-                    while ((bytesRead = is.read(data)) != -1) {
-                        buffer.write(data, 0, bytesRead);
-                    }
-
-                    // 关闭资源
-                    is.close();
-                    fd.close();
-
-                    // 转换为ByteBuffer返回（根据实际Buffer类型调整）
-                    return ByteBuffer.wrap(buffer.toByteArray());
-                } catch (IOException e) {
-                    // 处理文件未找到等情况
-                    Log.e("LuaLoader", "Failed to load module: " + module, e);
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-        StateThreadTree.put(MainLua.getId(), MainLua.getPointer());
+        MainLua=LuaNewState(Looper.getMainLooper());
+//        StateThreadTree.put(MainLua.getId(), MainLua.getPointer());
         return MainLua!=null;
     }
 
     private AbstractLua LuaNewState(Looper looper){
         AbstractLua L=new SafeLua53(looper);
+        L.setExternalLoader(new DefaultLuaLoader(C));
+        L.openLibraries();
         //为luaState准备C function，传入id和queue
         SDKLuaInit(L.getPointer(),L.getId());
 
@@ -101,6 +70,8 @@ public class parallelSDK {
 
     public AbstractLua LuaNewState(){
         AbstractLua L=new SafeLua53();
+        L.setExternalLoader(new DefaultLuaLoader(C));
+        L.openLibraries();
         //为luaState准备C function，传入id和queue
         SDKLuaInit(L.getPointer(),L.getId());
 
@@ -109,15 +80,28 @@ public class parallelSDK {
 
     public int luaNewStateC(){
         AbstractLua L=new SafeLua53();
+        L.setExternalLoader(new DefaultLuaLoader(C));
+        L.openLibraries();
         SDKLuaInit(L.getPointer(),L.getId());
         return L.getId();
+    }
+
+    public void LuaCloseState(AbstractLua L){;
+        ((SafeLua53)L).looper.quitSafely();
+        L.close();
+    }
+
+    public void closeLuaStateC(int id){
+        AbstractLua L=AbstractLua.getInstance(id);
+        ((SafeLua53)L).looper.quitSafely();
+        L.close();
     }
 
     public static void Tick(int id){
         AbstractLua L=AbstractLua.getInstance(id);
         //这里异步扔走了
         ((SafeLua53)L).run("local a=require(\"cross_vm\")" +
-                "a.analyzer(thread.processtask())");
+                "a.analyzer(_thread.processtask())");
     }
 
     public native long SDKLuaInit(long luaState,int id);
