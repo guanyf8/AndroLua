@@ -500,14 +500,19 @@ pack_one(lua_State *L, struct write_block *b, int index) {
         //todo 在跨vm大肆造代理的条件下是否有必要把整个函数传过去，会不会快一点
         //todo 不做不行，因为要实现runnable
         //todo 但是需要考虑一个问题：如何界定是否有上值。以及后续是否真的要上值同步
-//        const char* ret=lua_getupvalue(L, index, 1);
-//        const char* ret2= lua_getupvalue(L,index,2);
-//        if (ret!= NULL) {
-//            luaL_error(L, "Only light C function or Lua function without upvalue can be serialized");
-//        }
-		lua_CFunction func = lua_tocfunction(L,index);
-		if (func == NULL ) {
+        if(index<0){
+            index= lua_gettop(L)+index+1;
+        }
+        lua_CFunction func = lua_tocfunction(L,index);
+        if (func == NULL) {
             //lua function
+            //todo 需要替换_ENV为代理
+            //todo code...
+            const char* upval2=lua_getupvalue(L, index, 2);
+            if(upval2!=NULL){
+                //todo 需要发信号把luaState停掉,把所有upvalue都做代理
+                luaL_error(L,"lua function with upvalue unsupported");
+            }
             lua_pushvalue(L,index);
             luaL_Buffer buffer;
             luaL_buffinit(L, &buffer);
@@ -517,20 +522,21 @@ pack_one(lua_State *L, struct write_block *b, int index) {
             // 栈顶现在是字符串
             luaL_pushresult(&buffer);
             wb_pointer(b,(void*)func,TYPE_USERDATA_LFUNCTION);
-            //todo 写入长string
+            //把函数打包字符串写进bufer
             size_t sz = 0;
             const char *str = lua_tolstring(L,-1,&sz);
             wb_string(b, str, (int)sz);
             lua_pop(L,2);
             break;
-		}else{
-            if (lua_getupvalue(L, index, 1)!= NULL) {
-                luaL_error(L, "Only light C function can be serialized");
-            }
+        }else if(lua_getupvalue(L, index, 1) == NULL){
+            //light C function
             wb_pointer(b, (void *)func, TYPE_USERDATA_CFUNCTION);
             break;
+        }else{
+            //无所谓平不平栈,因为报错了
+            luaL_error(L, "Only light C function or Lua function can be serialized");
         }
-		 }
+    }
 	case LUA_TTABLE: {
 		if (index < 0) {
 			index = lua_gettop(L) + index + 1;
@@ -543,7 +549,6 @@ pack_one(lua_State *L, struct write_block *b, int index) {
 			s->ancestor[s->depth] = index;
 		++s->depth;
 		wb_table(L, b, index);
-        //todo
         int a= lua_gettop(L);
         //在每个表后面必跟一个元方法
         if(lua_getmetatable(L,index)){
@@ -807,7 +812,6 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
                 uint8_t type;
                 rb_read(rb,sizeof(void*));
 
-
                 const uint8_t *t = rb_read(rb, sizeof(type));
                 if (t==NULL) {
                     invalid_stream(L, rb);
@@ -819,6 +823,7 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
                 lua_pop(L,1);
                 // 3. 加载二进制 chunk
                 int status = luaL_loadbuffer(L, data, len, "binary chunk");
+//                const char* upval= lua_getupvalue(L,-1,1);
                 switch (status) {
                     case LUA_OK:
                         break;
@@ -864,8 +869,7 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
 	case TYPE_TABLE:
 	case TYPE_TABLE_MARK:
 		unpack_table(L,rb,cookie,type);
-        //todo
-//        //metatable紧随其后
+        //metatable紧随其后
         const uint8_t *t = rb_read(rb, 1);
         if (t==NULL){
             luaL_error(L, "went wrong when unpack table: no metatable found");

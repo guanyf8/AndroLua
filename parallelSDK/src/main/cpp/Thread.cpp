@@ -35,6 +35,7 @@ int luathread_new(lua_State* L){
 int luathread_free(lua_State* L){
     lua_getglobal(L,"ID");
     int id= lua_tointeger(L,-1);
+    //todo 不可以自己回收自己，如果自己调了自己，要交给主线程父线程或主线程回收
     CirQueClose(id);
     JNIEnv *env;
     jvm->AttachCurrentThread(&env, NULL);
