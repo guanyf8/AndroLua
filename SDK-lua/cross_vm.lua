@@ -9,13 +9,13 @@ local MAIN_STATE=0
 local TYPE_RUN=0
 local TYPE_INVOKE=1
 local TYPE_CALLBACK=2
-local TYPE_SYNC_INVOKE=3
+local TYPE_RETURN=3
 
 local M={}
 
 local invoke_tool
 local callback_tool
-local syncinvoke_tool
+local runreturn_tool
 
 invoke_tool=function(module,name,...)
     require(module)[name](...)
@@ -27,8 +27,11 @@ callback_tool=function(id,...)
     _thread.callback_gc(id)
 end
 
---todo 同步调用可不可以不要这么蠢，是否可以提前获知表达式的左值和右值
-syncinvoke_tool=function(module)  end
+runreturn_tool=function(status,...)
+    local buf,sz=_seri.pack(...)
+    --todo 完成scheduler
+    _schdl.sig()
+end
 
 local table_preprocess
 table_preprocess=function(t)
@@ -88,16 +91,11 @@ M.analyzer=function(buffer,sz,target_id,type)
     if target_id==ID then
         if type==TYPE_INVOKE then
             invoke_tool(_seri.unpack_remove(buffer))
-        elseif type==TYPE_SYNC_INVOKE then
-        --    todo 这里真正涉及到了调度，需要控制luaState的挂起和恢复
-
         elseif type==TYPE_CALLBACK then
-            --FIXME 得益于luajava的引入，回调变得方便了起来
-            --FIXME 但并不意味着这里可以省略，直接在lua层进行交互会快一点
             callback_tool(_seri.unpack_remove(buffer))
         elseif type==TYPE_RUN then
-            local runnable=_seri.unpack_remove(buffer)
-            runnable()
+            local runnable,arg_list=_seri.unpack_remove(buffer)
+            pcall(runnable(table.unpack(arg_list)))
         end
     else
     --    todo 发错地方了，要重传

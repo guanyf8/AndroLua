@@ -4,9 +4,8 @@
 
 #ifndef PARALLELLJ_THREAD_H
 #define PARALLELLJ_THREAD_H
-extern "C" {
+
 #include "lua.h"
-}
 
 typedef struct task_struct{
     struct task_struct* parent;

@@ -8,15 +8,10 @@
 
 #define QUEUE_SIZE 512
 
-#include <atomic>
-extern "C" {
+#include <bits/stdatomic.h>
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-}
-#include <map>
-
-using namespace std;
 
 #define TYPE_REQUIRE 0
 #define TYPE_INVOKE  1
@@ -37,7 +32,7 @@ typedef struct {
     atomic_flag lock;
 } CirQue;
 
-extern map<int,CirQue*> queue_record;
+extern CirQue* queue_record[128];
 
 CirQue* CirQueInit(int id);
 void CirQueClose(int id);

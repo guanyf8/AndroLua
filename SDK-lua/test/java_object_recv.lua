@@ -20,6 +20,8 @@ M.test=function(name,age,callback,t)
         print("response:"..args)
     end)
     t.a("surprise")
+    print("shared: ")
+    print(_SHARED.a)
 end
 
 return M

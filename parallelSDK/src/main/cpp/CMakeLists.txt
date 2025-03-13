@@ -35,7 +35,7 @@ include_directories(
         ../../../../jni/luajava
 )
 
-file(GLOB source_files "*.c" "*.cpp")
+file(GLOB source_files "*.c")
 
 
 add_library(${CMAKE_PROJECT_NAME} SHARED

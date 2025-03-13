@@ -6,25 +6,36 @@
 local cvm=require("cross_vm")
 local m={}
 
+m.service={}
+
+m.subthread={}
+
 --可以收获一个具名线程，
-m.new=function()
-    return _thread.new()
+m.newState =function()
+    local id=_thread.new()
+    m.service[id]=1
+    return id
 end
 
-m.close=function(id)
+--不能自己回收自己
+m.closeState =function(id)
+    if id==ID then
+        error("recycle self not allowed")
+    end
+    m.service[id]=nil
     _thread.free(id)
 end
 
---runnable应该是一个无参函数
+--第一个为runnable，后面为接收的参数
 --新建一个匿名线程，执行完就回收
---todo 可以有第二个参数，实现线程池
-m.run=function(runnable)
-    local id=m.new()
-    local b,_sz=_seri.pack(runnable)
+m.run=function(runnable,...)
+    local id=m.newState()
+    local b,_sz=_seri.pack(runnable,{...})
     _thread.post(b,_sz,id,cvm.TYPE_RUN)
 end
 
---todo 阻塞时可以构建一个谦让式的调度
+m.join=function(id)
 
+end
 
 return m

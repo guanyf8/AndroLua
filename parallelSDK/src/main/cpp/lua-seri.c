@@ -16,84 +16,9 @@
 #include <string.h>
 #include <jni.h>
 #include "JNInfo.h"
+#include "lua-seri.h"
 
-#define TYPE_BOOLEAN 0
 
-#define TYPE_BOOLEAN_NIL 0
-#define TYPE_BOOLEAN_FALSE 1
-#define TYPE_BOOLEAN_TRUE 2
-
-// hibits 0 false 1 true
-#define TYPE_NUMBER 1
-// hibits 0 : 0 , 1: byte, 2:word, 4: dword, 6: qword, 8 : double
-#define TYPE_NUMBER_ZERO 0
-#define TYPE_NUMBER_BYTE 1
-#define TYPE_NUMBER_WORD 2
-#define TYPE_NUMBER_DWORD 4
-#define TYPE_NUMBER_QWORD 6
-#define TYPE_NUMBER_REAL 8
-
-#define TYPE_USERDATA 2
-// hibits 0 : void *
-// hibits 1 : c function
-#define TYPE_USERDATA_POINTER 0
-#define TYPE_USERDATA_CFUNCTION 1
-#define TYPE_USERDATA_JOBJECT 2
-#define TYPE_USERDATA_JCLASS 3
-#define TYPE_USERDATA_LFUNCTION 4
-
-#define TYPE_SHORT_STRING 3
-// hibits 0~31 : len
-#define TYPE_LONG_STRING 4
-
-// hibits 0~30 : array size , 31 : extend size
-#define TYPE_TABLE 5
-#define TYPE_TABLE_MARK 6
-
-// hibits 0~30 : ref ancestor id , 31 : extend id ( number )
-#define TYPE_REF 7
-
-#define MAX_COOKIE 32    //2^5
-#define EXTEND_NUMBER (MAX_COOKIE-1)
-#define COMBINE_TYPE(t,v) ((t) | (v) << 3)
-
-#define BLOCK_SIZE 128
-#define MAX_DEPTH 31
-
-#define MAX_REFERENCE 32
-
-struct block {
-	struct block * next;
-	char buffer[BLOCK_SIZE];
-};
-
-struct stack {
-	int depth;
-	int ref_index;
-	int objectid;
-	int ancestor[MAX_DEPTH];
-};
-
-struct reference {
-	const void * object;
-	uint8_t * address;
-};
-
-struct write_block {
-	struct block * head;
-	struct block * current;
-	int len;
-	int ptr;
-	struct stack s;
-	struct reference r[MAX_REFERENCE];
-};
-
-struct read_block {
-	char * buffer;
-	int len;
-	int ptr;
-	struct stack s;
-};
 
 inline static struct block *
 blk_alloc(void) {
@@ -497,8 +422,6 @@ pack_one(lua_State *L, struct write_block *b, int index) {
 		wb_pointer(b, lua_touserdata(L,index), TYPE_USERDATA_POINTER);
 		break;
 	case LUA_TFUNCTION: {
-        //todo 在跨vm大肆造代理的条件下是否有必要把整个函数传过去，会不会快一点
-        //todo 不做不行，因为要实现runnable
         //todo 但是需要考虑一个问题：如何界定是否有上值。以及后续是否真的要上值同步
         if(index<0){
             index= lua_gettop(L)+index+1;
@@ -506,17 +429,15 @@ pack_one(lua_State *L, struct write_block *b, int index) {
         lua_CFunction func = lua_tocfunction(L,index);
         if (func == NULL) {
             //lua function
-            //todo 需要替换_ENV为代理
-            //todo code...
-            const char* upval2=lua_getupvalue(L, index, 2);
-            if(upval2!=NULL){
+            if(lua_getupvalue(L,index,2)!=NULL){
                 //todo 需要发信号把luaState停掉,把所有upvalue都做代理
                 luaL_error(L,"lua function with upvalue unsupported");
             }
             lua_pushvalue(L,index);
             luaL_Buffer buffer;
             luaL_buffinit(L, &buffer);
-            if (lua_dump(L, writer, &buffer, 0) != 0) {
+            int temp;
+            if ((temp=lua_dump(L, writer, &buffer, 0)) != 0) {
                 luaL_error(L,"lua function dump fail");
             }
             // 栈顶现在是字符串
@@ -549,7 +470,6 @@ pack_one(lua_State *L, struct write_block *b, int index) {
 			s->ancestor[s->depth] = index;
 		++s->depth;
 		wb_table(L, b, index);
-        int a= lua_gettop(L);
         //在每个表后面必跟一个元方法
         if(lua_getmetatable(L,index)){
             pack_one(L,b,-1);
@@ -823,7 +743,7 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
                 lua_pop(L,1);
                 // 3. 加载二进制 chunk
                 int status = luaL_loadbuffer(L, data, len, "binary chunk");
-//                const char* upval= lua_getupvalue(L,-1,1);
+                const char* upval= lua_getupvalue(L,-1,2);
                 switch (status) {
                     case LUA_OK:
                         break;

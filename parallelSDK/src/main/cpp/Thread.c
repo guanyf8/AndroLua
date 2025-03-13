@@ -4,25 +4,22 @@
 
 #include <jni.h>
 #include "Thread.h"
-extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 #include "lua-seri.h"
-}
 #include "JNInfo.h"
 #include "TaskQueue.h"
 
 
 static int new_thread(){
     JNIEnv *env;
-    jvm->AttachCurrentThread(&env, NULL);
-    jclass clazz = env->FindClass("com/lockheed/parallelsdk/parallelSDK");
-    jmethodID tick = env->GetStaticMethodID( clazz,"Tick","(I)V");
-    jmethodID getInstance = env->GetStaticMethodID( clazz,"getInstance", "()Lcom/lockheed/parallelsdk/parallelSDK;");
-    jobject sdkInstance = env->CallStaticObjectMethod(  clazz, getInstance);
-    jmethodID mtd = env->GetMethodID(  clazz, "luaNewStateC", "()I");
-    jint id=env->CallIntMethod(  sdkInstance, mtd);
+    (*jvm)->AttachCurrentThread(jvm,&env, NULL);
+    jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");
+    jmethodID getInstance = (*env)->GetStaticMethodID( env,clazz,"getInstance", "()Lcom/lockheed/parallelsdk/parallelSDK;");
+    jobject sdkInstance = (*env)->CallStaticObjectMethod(  env,clazz, getInstance);
+    jmethodID mtd = (*env)->GetMethodID(  env,clazz, "luaNewStateC", "()I");
+    jint id=(*env)->CallIntMethod(  env,sdkInstance, mtd);
 //    jvm->DetachCurrentThread();
     return id;
 }
@@ -38,14 +35,13 @@ int luathread_free(lua_State* L){
     //todo 不可以自己回收自己，如果自己调了自己，要交给主线程父线程或主线程回收
     CirQueClose(id);
     JNIEnv *env;
-    jvm->AttachCurrentThread(&env, NULL);
-    jclass clazz = env->FindClass("com/lockheed/parallelsdk/parallelSDK");
-    jmethodID tick = env->GetStaticMethodID( clazz,"Tick","(I)V");
-    jmethodID getInstance = env->GetStaticMethodID( clazz,"getInstance", "()Lcom/lockheed/parallelsdk/parallelSDK;");
-    jobject sdkInstance = env->CallStaticObjectMethod(  clazz, getInstance);
-    jmethodID mtd = env->GetMethodID(  clazz, "closeLuaStateC", "(I)V");
-    env->CallVoidMethod(sdkInstance, mtd,id);
-    jvm->DetachCurrentThread();
+    (*jvm)->AttachCurrentThread(jvm,&env, NULL);
+    jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");
+    jmethodID getInstance =  (*env)->GetStaticMethodID(env,clazz,"getInstance", "()Lcom/lockheed/parallelsdk/parallelSDK;");
+    jobject sdkInstance = (*env)->CallStaticObjectMethod(env,  clazz, getInstance);
+    jmethodID mtd = (*env)->GetMethodID( env, clazz, "closeLuaStateC", "(I)V");
+    (*env)->CallVoidMethod(env,sdkInstance, mtd,id);
+    (*jvm)->DetachCurrentThread(jvm);
     return 0;
 }
 
@@ -53,10 +49,10 @@ int luathread_post(lua_State* L){
     //todo:应该要通知对方才行，因为不能一直tick去占用cpu，通知上面handler去发一个popstack
     luatask_push(L);
     JNIEnv *env;
-    jvm->AttachCurrentThread(&env, NULL);
-    jclass clazz = env->FindClass("com/lockheed/parallelsdk/parallelSDK");
-    jmethodID tick = env->GetStaticMethodID( clazz,"Tick","(I)V");
-    env->CallStaticVoidMethod(clazz,tick,(int)lua_tointeger(L,3));
+    (*jvm)->AttachCurrentThread(jvm,&env, NULL);
+    jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");
+    jmethodID tick = (*env)->GetStaticMethodID(env, clazz,"Tick","(I)V");
+    (*env)->CallStaticVoidMethod(env,clazz,tick,(int)lua_tointeger(L,3));
 //    jvm->DetachCurrentThread();
     return 0;
 }
@@ -66,12 +62,12 @@ int luathread_processTask(lua_State* L){
 //    for(int i=0;i<batch;i++){
     int ret=luatask_pop(L);
 //    }
-    if(queue_record.at((int)lua_tointeger(L,3))->size!=0){
+    if(queue_record[(int)lua_tointeger(L,3)]->size!=0){
         JNIEnv *env;
-        jvm->AttachCurrentThread(&env, NULL);
-        jclass clazz = env->FindClass("com/lockheed/parallelsdk/parallelSDK");
-        jmethodID tick = env->GetStaticMethodID( clazz,"Tick","(I)V");
-        env->CallStaticVoidMethod(clazz,tick,(int)lua_tointeger(L,3));
+        (*jvm)->AttachCurrentThread(jvm,&env, NULL);
+        jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");
+        jmethodID tick = (*env)->GetStaticMethodID(env, clazz,"Tick","(I)V");
+        (*env)->CallStaticVoidMethod(env,clazz,tick,(int)lua_tointeger(L,3));
 //        jvm->DetachCurrentThread();
     }
     return ret;

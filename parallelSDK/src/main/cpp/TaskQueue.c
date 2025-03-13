@@ -4,26 +4,27 @@
 
 #include "TaskQueue.h"
 #include "lua-seri.h"
-#include <cstdlib>
-#include <map>
+#include <stdlib.h>
+#include <string.h>
+
+static atomic_char flag=1;
+CirQue* queue_record[128];
 
 //原子操作+自旋锁实现producer-consumer问题
-std::map<int,CirQue*> queue_record;
-
 CirQue* CirQueInit(int id) {
     CirQue * q=(CirQue*) malloc(sizeof(CirQue));
     atomic_init(&q->f, 0);
     atomic_init(&q->r, 0);
     atomic_init(&q->size, 0);
     atomic_flag_clear(&q->lock);
-    queue_record.insert({id,q});
+    queue_record[id]=q;
     return q;
 }
 
 void CirQueClose(int id){
-    CirQue* que=queue_record.at(id);
+    CirQue* que=queue_record[id];
     free(que);
-    queue_record.erase(id);
+    queue_record[id]=NULL;
 }
 
 char PopTask(CirQue* q, task_item* out) {
@@ -75,7 +76,7 @@ int luatask_push(lua_State* L){
         default:
             luaL_error(L,"invalid args");
     }
-    PushTask(queue_record.at(temp.target_id),temp);
+    PushTask(queue_record[temp.target_id],temp);
 
     return 0;
 }
@@ -105,6 +106,10 @@ int luatask_pop(lua_State* L){
 
 LUAMOD_API int
 luaopen_taskqueue(lua_State *L) {
+    if(flag){
+        memset(queue_record,0,sizeof(CirQue*)*128);
+        flag=0;
+    }
     luaL_checkversion(L);
     luaL_Reg l[] = {
             { "pushtask", luatask_push },

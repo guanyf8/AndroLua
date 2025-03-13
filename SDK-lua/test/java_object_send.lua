@@ -11,68 +11,42 @@
 --
 local vm=require("cross_vm")
 local thread=require("threadAPI")
-local vmvm=thread.new()
+local vmvm=thread.newState()
 
 
+local t={
+    h=4,
+    func=function()
+        print("shared")
+    end,
+    ta={
+        a=18,
+        b="recursive"
+    }
+}
 
-thread.run(function()
-    print("in runnable I can fly")
-end)
+--print(str)
+--print("dump completed"+str)
+_SHARED.a=t
+print(_SHARED.a)
+print("pass")
 
 
 local recv=vm.cross_vm_require(vmvm,"test.java_object_recv")
 
 local r=2
-local tt={}
-local ff=function(arg)
-        print("f(x) in g(x)"..arg..r..ID)
-    end
-tt["f"]=ff
-print(tt)
-tt.f("outside the function")
+--local r=2
+thread.run(function()
+    print("in runnable I can fly"..ID)
+end)
 
-
-local index = 1
-while true do
-    local name,value = debug.getupvalue(tt.f, index)
-    if not name then
-        break
-    end
-
-    print(name)
-    if index>1 then
-        print(value)
-    end
-    index = index + 1
-end
---local t={b=6,a=function(arg)
---    print("f(x) in g(x)"..arg..tostring(r))
---end}
-
-tt.f("outside the function")
-
---print(_ENV)
-
-local tttt=function(tabl)
-    local index_ = 1
-    print("in tttt")
-    tabl.f("in tttt")
-    while true do
-        local name = debug.getupvalue(tabl.f, index_)
-        if not name then
-            break
-        end
-        print(name)
-        index_ = index_ + 1
-    end
-end
-
-tttt(tt)
 
 recv.test("mike",18,function(arg,callback_)
     print("hahaha:"..arg)
     callback_("callback in ABB")
-end,{b=6,a=ff})
+end,{b=6,a=function(arg)
+    print(arg)
+end})
 
 print("task done")
 
