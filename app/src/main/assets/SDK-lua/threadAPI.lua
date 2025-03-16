@@ -30,12 +30,20 @@ end
 --新建一个匿名线程，执行完就回收
 m.run=function(runnable,...)
     local id=m.newState()
-    local b,_sz=_seri.pack(runnable,{...})
+    local meta=_sched.fork(id)
+    local b,_sz=_seri.pack(meta,runnable,{...})
+    --print("in run"..tostring(id))
     _thread.post(b,_sz,id,cvm.TYPE_RUN)
+
+    return id
 end
 
 m.join=function(id)
+    return _sched.join(id)
+end
 
+m.wait=function()
+    _sched.wait()
 end
 
 return m

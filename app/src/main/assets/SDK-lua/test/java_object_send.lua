@@ -34,19 +34,32 @@ print("pass")
 
 local recv=vm.cross_vm_require(vmvm,"test.java_object_recv")
 
-local r=2
+local r={}
 --local r=2
-thread.run(function()
-    print("in runnable I can fly"..ID)
-end)
+for i=1,10 do
+    r[i]=thread.run(function(tt)
+        print("in runnable I can fly"..ID..tt)
+        return ID,tt
+    end,i)
+end
 
+print("now wait")
+thread.wait()
 
-recv.test("mike",18,function(arg,callback_)
-    print("hahaha:"..arg)
-    callback_("callback in ABB")
-end,{b=6,a=function(arg)
-    print(arg)
-end})
+local m={}
+for i=1,10 do
+    m[i]={thread.join(r[i])}
+end
 
-print("task done")
+print(m)
+print("join done")
+
+--recv.test("mike",18,function(arg,callback_)
+--    print("hahaha:"..arg)
+--    callback_("callback in ABB")
+--end,{b=6,a=function(arg)
+--    print(arg)
+--end})
+--
+--print("task done")
 

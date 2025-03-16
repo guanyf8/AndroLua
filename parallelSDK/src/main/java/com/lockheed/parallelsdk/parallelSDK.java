@@ -87,21 +87,23 @@ public class parallelSDK {
     }
 
     public void LuaCloseState(AbstractLua L){;
-        ((SafeLua53)L).looper.quitSafely();
+        ((SafeLua53)L).mHandlerThread.quitSafely();
         L.close();
     }
 
     public void closeLuaStateC(int id){
         AbstractLua L=AbstractLua.getInstance(id);
-        ((SafeLua53)L).looper.quitSafely();
+        ((SafeLua53)L).mHandlerThread.quitSafely();
         L.close();
     }
 
     public static void Tick(int id){
         AbstractLua L=AbstractLua.getInstance(id);
+//        Log.d("Tick","before"+L.getId());
         //这里异步扔走了
         ((SafeLua53)L).run("local a=require(\"cross_vm\")" +
                 "a.analyzer(_thread.processtask())");
+//        Log.d("Tick","after");
     }
 
     public native long SDKLuaInit(long luaState,int id);

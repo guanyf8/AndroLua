@@ -33,9 +33,10 @@ include_directories(
         ../../../../jni/lua53
         ${CMAKE_SOURCE_DIR}/src/main/cpp  # 如果有额外的头文件目录
         ../../../../jni/luajava
+        DataStructure/
 )
 
-file(GLOB source_files "*.c")
+file(GLOB source_files "*.c" "DataStructure/*.c")
 
 
 add_library(${CMAKE_PROJECT_NAME} SHARED

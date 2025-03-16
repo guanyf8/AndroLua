@@ -1,6 +1,9 @@
 package com.lockheed.parallelsdk;
 
+import static android.webkit.ConsoleMessage.MessageLevel.LOG;
+
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.util.Log;
 
@@ -14,20 +17,14 @@ import party.iroiro.luajava.lua53.Lua53;
 
 public class SafeLua53 extends Lua53 {
     Looper looper;
+    HandlerThread mHandlerThread;;
     public Handler _handler;
 
     public SafeLua53(){
         super();
-        Thread t=new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Looper.prepare();
-                looper=Looper.myLooper();
-                _handler = new Handler(looper);
-                Looper.loop();
-            }
-        });
-        t.start();
+        mHandlerThread= new HandlerThread("Lua"+getId());
+        mHandlerThread.start();
+        _handler = new Handler( mHandlerThread.getLooper() );
 
     }
 
@@ -57,7 +54,9 @@ public class SafeLua53 extends Lua53 {
 
     @Override
     public void run(String script) throws LuaException {
+        Log.d("run"+getId(),"prerun");
         while(_handler==null);
+        Log.d("run"+getId(),"pass while");
         _handler.post(new Runnable() {
             @Override
             public void run() {

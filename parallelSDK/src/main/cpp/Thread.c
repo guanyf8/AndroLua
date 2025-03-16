@@ -3,6 +3,7 @@
 //
 
 #include <jni.h>
+#include <android/log.h>
 #include "Thread.h"
 #include "lua.h"
 #include "lualib.h"
@@ -29,31 +30,40 @@ int luathread_new(lua_State* L){
     return 1;
 }
 
-int luathread_free(lua_State* L){
-    lua_getglobal(L,"ID");
-    int id= lua_tointeger(L,-1);
-    //todo 不可以自己回收自己，如果自己调了自己，要交给主线程父线程或主线程回收
+void* free_thread(int id){
     CirQueClose(id);
     JNIEnv *env;
     (*jvm)->AttachCurrentThread(jvm,&env, NULL);
     jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");
     jmethodID getInstance =  (*env)->GetStaticMethodID(env,clazz,"getInstance", "()Lcom/lockheed/parallelsdk/parallelSDK;");
     jobject sdkInstance = (*env)->CallStaticObjectMethod(env,  clazz, getInstance);
-    jmethodID mtd = (*env)->GetMethodID( env, clazz, "closeLuaStateC", "(I)V");
+    jmethodID mtd = (*env)->GetMethodID(env, clazz, "closeLuaStateC", "(I)V");
     (*env)->CallVoidMethod(env,sdkInstance, mtd,id);
-    (*jvm)->DetachCurrentThread(jvm);
+}
+
+int luathread_free(lua_State* L){
+    int id= lua_tointeger(L,-1);
+    //todo 不可以自己回收自己，如果自己调了自己，要交给主线程父线程或主线程回收
+    free_thread(id);
     return 0;
 }
 
 int luathread_post(lua_State* L){
-    //todo:应该要通知对方才行，因为不能一直tick去占用cpu，通知上面handler去发一个popstack
     luatask_push(L);
     JNIEnv *env;
     (*jvm)->AttachCurrentThread(jvm,&env, NULL);
     jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");
     jmethodID tick = (*env)->GetStaticMethodID(env, clazz,"Tick","(I)V");
+//    char buf[20];
+//    snprintf(buf, sizeof(buf), "Lua%d is preposting", lua_tointeger(L,3));
+//    __android_log_write(ANDROID_LOG_DEBUG, "thread", buf);
+
     (*env)->CallStaticVoidMethod(env,clazz,tick,(int)lua_tointeger(L,3));
-//    jvm->DetachCurrentThread();
+
+
+//    snprintf(buf, sizeof(buf), "Lua%d is posting", lua_tointeger(L,3));
+//    __android_log_write(ANDROID_LOG_DEBUG, "thread", buf);
+////    jvm->DetachCurrentThread();
     return 0;
 }
 
@@ -62,7 +72,7 @@ int luathread_processTask(lua_State* L){
 //    for(int i=0;i<batch;i++){
     int ret=luatask_pop(L);
 //    }
-    if(queue_record[(int)lua_tointeger(L,3)]->size!=0){
+    if(((CirQue *)hashGet(queue_record,(int)lua_tointeger(L,3)))->size!=0){
         JNIEnv *env;
         (*jvm)->AttachCurrentThread(jvm,&env, NULL);
         jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");
@@ -82,8 +92,8 @@ int luathread_callbackreg(lua_State* L){
 
 int luathread_callbackget(lua_State* L){
     //传一个参id
-    int id= lua_tointeger(L,1);
-    lua_rawgeti(L, LUA_REGISTRYINDEX, id);
+    int ref= lua_tointeger(L,1);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
     return 1;
 }
 
@@ -190,8 +200,8 @@ int luathread_callproxy(lua_State* L){
 }
 
 int luathread_callbackgc(lua_State* L){
-    int id= lua_tointeger(L,1);
-    luaL_unref(L, LUA_REGISTRYINDEX, id);
+    int ref= lua_tointeger(L,1);
+    luaL_unref(L, LUA_REGISTRYINDEX, ref);
     return 0;
 }
 

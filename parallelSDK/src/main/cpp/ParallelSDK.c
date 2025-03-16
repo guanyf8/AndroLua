@@ -11,6 +11,7 @@
 #include <android/log.h>
 #include "TaskQueue.h"
 #include "Thread.h"
+#include "Scheduler.h"
 
 
 extern int luaopen_seri(lua_State *L);
@@ -33,7 +34,8 @@ Java_com_lockheed_parallelsdk_parallelSDK_SDKLuaInit(JNIEnv *env, jobject thiz, 
     luaL_requiref(L, "_seri", luaopen_seri, 1);
     luaL_requiref(L,"_queue",luaopen_taskqueue,1);
     luaL_requiref(L,"_thread",luaopen_thread,1);
-    luaL_requiref(L,"shared",luaopen_shared,1);
+    luaL_requiref(L,"_shared",luaopen_shared,1);
+    luaL_requiref(L,"_sched",luaopen_sched,1);
     lua_pushinteger(L,id);
     lua_setglobal(L,"ID");
     CirQue * q=CirQueInit(id);

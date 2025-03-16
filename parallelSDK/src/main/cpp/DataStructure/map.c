@@ -4,11 +4,23 @@
 
 #include "map.h"
 
-struct rb_root map_init(void){
-    return RB_ROOT;
+int numcmp(void* a,void* b){
+    return *(int*)a-*(int*)b;
 }
 
-int map_insert(struct rb_root *root, const char* key, void *value) {
+int mystrcmp(void* a,void* b){
+    return strcmp((const char*)a,(const char*)b);
+}
+
+treeMap* map_init(int (*cmp)(void* a,void* b)){
+    treeMap *m=(treeMap*) malloc(sizeof(treeMap));
+    m->root=RB_ROOT;
+    m->cmp=cmp?cmp:mystrcmp;
+    return m;
+}
+
+int map_insert(treeMap* treemap, void* key, void *value) {
+    struct rb_root* root=&treemap->root;
     struct rb_node **_new = &(root->rb_node);
     struct rb_node *parent = NULL;
     struct map *node;
@@ -18,9 +30,9 @@ int map_insert(struct rb_root *root, const char* key, void *value) {
         struct map *_this = rb_entry(*_new, struct map, rb_node);
         parent = *_new;
 
-        if (strcmp(key,_this->key)<0)
+        if (treemap->cmp(key,_this->key)<0)
             _new = &((*_new)->rb_left);
-        else if (strcmp(key,_this->key)>0)
+        else if (treemap->cmp(key,_this->key)>0)
             _new = &((*_new)->rb_right);
         else
             return -1; // 键已存在
@@ -39,15 +51,16 @@ int map_insert(struct rb_root *root, const char* key, void *value) {
 }
 
 // 查找键值对
-void *map_find(struct rb_root *root, const char* key) {
+void *map_find(treeMap* treemap, void* key) {
+    struct rb_root* root=&treemap->root;
     struct rb_node *node = root->rb_node;
 
     while (node) {
         struct map *_this = rb_entry(node, struct map, rb_node);
 
-        if (strcmp(key,_this->key)<0)
+        if (treemap->cmp(key,_this->key)<0)
             node = node->rb_left;
-        else if (strcmp(key,_this->key)>0)
+        else if (treemap->cmp(key,_this->key)>0)
             node = node->rb_right;
         else
             return _this->value;
@@ -55,16 +68,35 @@ void *map_find(struct rb_root *root, const char* key) {
     return NULL;
 }
 
-// 删除键值对
-void map_erase(struct rb_root *root, const char* key) {
+// 查找键值对
+mapNode *map_search(treeMap* treemap, void* key) {
+    struct rb_root* root=&treemap->root;
     struct rb_node *node = root->rb_node;
 
     while (node) {
         struct map *_this = rb_entry(node, struct map, rb_node);
 
-        if (strcmp(key,_this->key)<0)
+        if (treemap->cmp(key,_this->key)<0)
             node = node->rb_left;
-        else if (strcmp(key,_this->key)>0)
+        else if (treemap->cmp(key,_this->key)>0)
+            node = node->rb_right;
+        else
+            return _this;
+    }
+    return NULL;
+}
+
+// 删除键值对,浅删除
+void map_erase(treeMap* treemap, void* key) {
+    struct rb_root* root=&treemap->root;
+    struct rb_node *node = root->rb_node;
+
+    while (node) {
+        struct map *_this = rb_entry(node, struct map, rb_node);
+
+        if (treemap->cmp(key,_this->key)<0)
+            node = node->rb_left;
+        else if (treemap->cmp(key,_this->key)>0)
             node = node->rb_right;
         else {
             rb_erase(node, root);
@@ -83,10 +115,12 @@ static void _map_node_free(struct rb_node* node){
     }
     struct map* map_node= rb_entry(node,struct map,rb_node);
     free(map_node->value);
-    free((void*)map_node->key);
+    free(map_node->key);
     free(map_node);
 }
 
-void map_free(struct rb_root* root){
+void map_free(treeMap* treemap){
+    struct rb_root* root=&treemap->root;
     _map_node_free(root->rb_node);
+    free(treemap);
 }

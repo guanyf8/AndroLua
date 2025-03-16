@@ -14,6 +14,8 @@ typedef struct task_struct{
     lua_State* L;
 } task_struct;
 
+
+void* free_thread(int id);
 extern int luathread_new(lua_State* L);
 extern int luathread_free(lua_State* L);
 extern int luathread_post(lua_State* L);

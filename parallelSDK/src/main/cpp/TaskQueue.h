@@ -12,6 +12,7 @@
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+#include "DataStructure/hashTable.h"
 
 #define TYPE_REQUIRE 0
 #define TYPE_INVOKE  1
@@ -32,7 +33,8 @@ typedef struct {
     atomic_flag lock;
 } CirQue;
 
-extern CirQue* queue_record[128];
+//extern CirQue* queue_record[128];
+extern hashMap* queue_record;     //todo 注意线程安全
 
 CirQue* CirQueInit(int id);
 void CirQueClose(int id);

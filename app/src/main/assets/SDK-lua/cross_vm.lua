@@ -94,8 +94,9 @@ M.analyzer=function(buffer,sz,target_id,type)
         elseif type==TYPE_CALLBACK then
             callback_tool(_seri.unpack_remove(buffer))
         elseif type==TYPE_RUN then
-            local runnable,arg_list=_seri.unpack_remove(buffer)
-            pcall(runnable(table.unpack(arg_list)))
+            local meta,runnable,arg_list=_seri.unpack_remove(buffer)
+            local buf,sz=_seri.pack(runnable(table.unpack(arg_list)))
+            _sched.ret(meta,buf)
         end
     else
     --    todo 发错地方了，要重传

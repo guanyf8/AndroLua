@@ -6,11 +6,11 @@
 #include "SharedValue.h"
 
 static atomic_char flag=1;
-Map SharedCache;
+Map* SharedCache;
 pthread_rwlock_t cache_mutex;
 
 void SharedCacheInit(){
-    SharedCache=map_init();
+    SharedCache=map_init(NULL);
 //    SharedCache= (std::map<const char*, CacheEntry *,cmp_str>*)malloc(sizeof(std::map<const char*,CacheEntry *,cmp_str>));
     pthread_rwlock_init(&cache_mutex, NULL);
 }
@@ -18,7 +18,7 @@ void SharedCacheInit(){
 
 
 void SharedCacheFree(){
-    map_free(&SharedCache);
+    map_free(SharedCache);
 }
 
 
@@ -31,7 +31,7 @@ void* getpackbuffer(lua_State* L,int from,int* sz){
 int lua_sharedindex(lua_State* L){
     //只会有一个变量在buffer里面
     int ret=1;
-    CacheEntry * entry= map_find(&SharedCache, lua_tostring(L,-1));
+    CacheEntry * entry= map_find(SharedCache, (void*)lua_tostring(L,-1));
     if(entry){
         ret = seri_unpack(L, entry->buffer);
     }else {
@@ -49,15 +49,15 @@ int lua_sharednewindex(lua_State* L){
     memcpy(dst,str,len+1);
 
     void* buf= getpackbuffer(L,2,&size);
-    CacheEntry * e= map_find(&SharedCache,dst);
+    CacheEntry * e= map_find(SharedCache,(void*)dst);
     if(e==NULL){
         //insert
         e=(CacheEntry*) malloc(sizeof(CacheEntry));
         e->buffer=buf;
         pthread_mutex_init(&e->mutex,NULL);
-        map_insert(&SharedCache,dst,(void*)e);
+        map_insert(SharedCache,(void*)dst,(void*)e);
     }else{
-        e= (CacheEntry *)map_find(&SharedCache,dst);
+        e= (CacheEntry *)map_find(SharedCache,(void*)dst);
         //update
         if(!memcmp(e->buffer,buf,size))
             return 0;

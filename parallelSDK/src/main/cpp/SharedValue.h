@@ -7,7 +7,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include "lua-seri.h"
-#include "map.h"
+#include "DataStructure/map.h"
 #include <pthread.h>
 
 /*
@@ -42,7 +42,7 @@ typedef struct{
     void* buffer;
 } CacheEntry;
 
-extern Map SharedCache;
+extern Map* SharedCache;
 extern pthread_rwlock_t cache_mutex;
 
 extern void SharedCacheInit();

@@ -799,13 +799,11 @@ push_value(lua_State *L, struct read_block *rb, int type, int cookie) {
         if((type&0x7)==TYPE_TABLE){
             push_value(L, rb,type & 0x7,type>>3);
             lua_setmetatable(L,-2);
-        }else if((type&0x7)==TYPE_BOOLEAN && type>>3==TYPE_BOOLEAN_NIL){
-            lua_getglobal(L,"print");
-            lua_pushstring(L,"no metatable for the table");
-            lua_call(L,1,0);
-        }
-//
-
+        }//else if((type&0x7)==TYPE_BOOLEAN && type>>3==TYPE_BOOLEAN_NIL){
+//            lua_getglobal(L,"print");
+//            lua_pushstring(L,"no metatable for the table");
+//            lua_call(L,1,0);
+//        }
 		break;
 	case TYPE_REF:
 		unpack_ref(L,rb,cookie);
