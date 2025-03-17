@@ -96,9 +96,9 @@ LUAMOD_API int luaopen_shared(lua_State *L) {
     lua_setglobal(L,"_SHARED");
 
     luaL_Reg l[] = {
-            { "mutex_rdlock",luashared_rwrlock },
-            {"mutex_wrlock",luashared_rwwlock},
-            { "mutex_unlock", luashared_rwunlock },
+            { "rdlock",luashared_rwrlock },
+            {"wtlock",luashared_rwwlock},
+            { "unlock", luashared_rwunlock },
             { NULL, NULL },
     };
     luaL_newlib(L, l);

@@ -14,52 +14,14 @@ local thread=require("threadAPI")
 local vmvm=thread.newState()
 
 
-local t={
-    h=4,
-    func=function()
-        print("shared")
-    end,
-    ta={
-        a=18,
-        b="recursive"
-    }
-}
 
---print(str)
---print("dump completed"+str)
-_SHARED.a=t
 print(_SHARED.a)
 print("pass")
 
 
-local recv=vm.cross_vm_require(vmvm,"test.java_object_recv")
 
-local r={}
---local r=2
-for i=1,10 do
-    r[i]=thread.run(function(tt)
-        print("in runnable I can fly"..ID..tt)
-        return ID,tt
-    end,i)
-end
 
-print("now wait")
-thread.wait()
 
-local m={}
-for i=1,10 do
-    m[i]={thread.join(r[i])}
-end
 
-print(m)
-print("join done")
 
---recv.test("mike",18,function(arg,callback_)
---    print("hahaha:"..arg)
---    callback_("callback in ABB")
---end,{b=6,a=function(arg)
---    print(arg)
---end})
---
---print("task done")
 

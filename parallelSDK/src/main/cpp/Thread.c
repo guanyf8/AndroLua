@@ -31,7 +31,7 @@ int luathread_new(lua_State* L){
 }
 
 void* free_thread(int id){
-    CirQueClose(id);
+    QueueClose(id);
     JNIEnv *env;
     (*jvm)->AttachCurrentThread(jvm,&env, NULL);
     jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");
@@ -72,7 +72,7 @@ int luathread_processTask(lua_State* L){
 //    for(int i=0;i<batch;i++){
     int ret=luatask_pop(L);
 //    }
-    if(((CirQue *)hashGet(queue_record,(int)lua_tointeger(L,3)))->size!=0){
+    if(((Queue *)hashGet(queue_record,(int)lua_tointeger(L,3)))->size!=0){
         JNIEnv *env;
         (*jvm)->AttachCurrentThread(jvm,&env, NULL);
         jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");

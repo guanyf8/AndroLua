@@ -14,6 +14,7 @@
 typedef struct ThreadBundle{
     int parent;         //线程所有者，返回值去往的地方
     Map* threads;  //子线程id对应的返回值buffer
+    int bundle_size;
     atomic_int alive;   //子线程活着的记录，用于join的semaphore
     pthread_cond_t cond;
     pthread_mutex_t mutex;
@@ -24,13 +25,9 @@ typedef struct {
     atomic_bool flag;
 }ret_record;
 
-//threadwarp thread_record[128];  //子线程持有父线程的id哈希到的线程束信息
-extern hashMap* thread_record;      //todo 注意线程安全，后续可以做一个linkedlist hashmap,做细粒度锁
-
 int luasched_fork(lua_State* L);
 int luasched_ret(lua_State* L);
 int luasched_join(lua_State*);
-
 
 LUAMOD_API int
 luaopen_sched(lua_State *L);

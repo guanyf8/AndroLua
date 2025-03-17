@@ -430,9 +430,13 @@ pack_one(lua_State *L, struct write_block *b, int index) {
         if (func == NULL) {
             //lua function
             if(lua_getupvalue(L,index,2)!=NULL){
-                //todo 需要发信号把luaState停掉,把所有upvalue都做代理
                 luaL_error(L,"lua function with upvalue unsupported");
             }
+            //报警：提示访问全局变量和共享变量的区别
+            lua_getglobal(L,"print");
+            lua_pushstring(L,"Attenttion! All global value are thread local storage, _SHARED is recommended");
+            lua_call(L,1,0);
+
             lua_pushvalue(L,index);
             luaL_Buffer buffer;
             luaL_buffinit(L, &buffer);

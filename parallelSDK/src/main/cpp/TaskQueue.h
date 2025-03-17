@@ -31,15 +31,16 @@ typedef struct {
     atomic_int r;
     atomic_int size;
     atomic_flag lock;
-} CirQue;
+} Queue;
 
-//extern CirQue* queue_record[128];
+
 extern hashMap* queue_record;     //todo 注意线程安全
+extern pthread_rwlock_t rwlock;
 
-CirQue* CirQueInit(int id);
-void CirQueClose(int id);
-char PopTask(CirQue* q, task_item* out);
-char PushTask(CirQue* q, task_item item);
+Queue* QueueInit(int id);
+void QueueClose(int id);
+char PopTask(Queue* q, task_item* out);
+char PushTask(Queue* q, task_item item);
 int luatask_push(lua_State* L);
 int luatask_pop(lua_State* L);
 

@@ -3,3 +3,7 @@
 --- Created by guan.
 --- DateTime: 2025/3/4 9:59
 ---
+
+--这里进来是初始化，默认是主线程的0号state，执行初始逻辑
+
+local main=require("main")

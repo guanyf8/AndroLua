@@ -7,29 +7,35 @@
 #include "DataStructure/hashTable.h"
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 static atomic_char flag=1;
 hashMap* queue_record;
-//CirQue* queue_record[128];
+pthread_rwlock_t rwlock=PTHREAD_MUTEX_INITIALIZER;
 
 //原子操作+自旋锁实现producer-consumer问题
-CirQue* CirQueInit(int id) {
-    CirQue * q=(CirQue*) malloc(sizeof(CirQue));
+Queue* QueueInit(int id) {
+    Queue * q=(Queue*) malloc(sizeof(Queue));
     atomic_init(&q->f, 0);
     atomic_init(&q->r, 0);
     atomic_init(&q->size, 0);
     atomic_flag_clear(&q->lock);
+
+    pthread_rwlock_wrlock(&rwlock);
     hashInsert(queue_record,(tableUnit){id,q});
+    pthread_rwlock_unlock(&rwlock);
     return q;
 }
 
-void CirQueClose(int id){
-    CirQue* que= (CirQue *)hashGet(queue_record,id);
-    free(que);
+void QueueClose(int id){
+    pthread_rwlock_wrlock(&rwlock);
+    Queue* que= (Queue *)hashGet(queue_record,id);
     hashErase(queue_record,id);
+    pthread_rwlock_unlock(&rwlock);
+    free(que);
 }
 
-char PopTask(CirQue* q, task_item* out) {
+char PopTask(Queue* q, task_item* out) {
     while (atomic_flag_test_and_set(&q->lock))
         ;
 
@@ -45,7 +51,7 @@ char PopTask(CirQue* q, task_item* out) {
     return true;
 }
 
-char PushTask(CirQue* q, task_item item) {
+char PushTask(Queue* q, task_item item) {
     while (atomic_flag_test_and_set(&q->lock))
         ; // 自旋等待
 
@@ -78,7 +84,10 @@ int luatask_push(lua_State* L){
         default:
             luaL_error(L,"invalid args");
     }
-    PushTask(hashGet(queue_record,temp.target_id),temp);
+    pthread_rwlock_rdlock(&rwlock);
+    Queue* q=hashGet(queue_record,temp.target_id);
+    pthread_rwlock_unlock(&rwlock);
+    PushTask(q,temp);
 
     return 0;
 }
@@ -88,7 +97,7 @@ int luatask_push(lua_State* L){
 int luatask_pop(lua_State* L){
     task_item popped_task;
     lua_getglobal(L,"tqueue");
-    CirQue* q= (CirQue *)(lua_touserdata(L, -1));
+    Queue* q= (Queue *)(lua_touserdata(L, -1));
     lua_pop(L,1);   //恢复栈平衡
     char result=PopTask(q,&popped_task); // 从队列弹出一个任务
 
@@ -109,7 +118,6 @@ int luatask_pop(lua_State* L){
 LUAMOD_API int
 luaopen_taskqueue(lua_State *L) {
     if(flag){
-//        memset(queue_record,0,sizeof(CirQue*)*128);
         queue_record=hashInit();
         flag=0;
     }

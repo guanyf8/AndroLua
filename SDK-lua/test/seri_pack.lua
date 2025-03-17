@@ -20,15 +20,6 @@ local addressbook = {
 
 local num=3
 local name="happy"
---local a=java.import('android.util.Log')
---print(a)
---print(addressbook)
 
 local p,size=seri.pack(addressbook,num,name)
 local pushtask=taskqueue.pushtask(p,size,1)
-print(addressbook)
-print("size:",tostring(size))
-
-
-
---a:i("tset","hello from the lua")

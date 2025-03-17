@@ -38,7 +38,7 @@ Java_com_lockheed_parallelsdk_parallelSDK_SDKLuaInit(JNIEnv *env, jobject thiz, 
     luaL_requiref(L,"_sched",luaopen_sched,1);
     lua_pushinteger(L,id);
     lua_setglobal(L,"ID");
-    CirQue * q=CirQueInit(id);
+    Queue * q=QueueInit(id);
     lua_pushlightuserdata(L,q);
     lua_setglobal(L,"tqueue");
     return lua_state;
