@@ -4,6 +4,11 @@ public class JustForFun {
     int age;
     String name;
 
+    public JustForFun(String jack, int i) {
+        age=i;
+        name=jack;
+    }
+
     public String getName() {
         return name;
     }

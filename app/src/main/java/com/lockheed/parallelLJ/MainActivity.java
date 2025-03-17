@@ -50,43 +50,14 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         C=this.getApplicationContext();
+
+        //init
         parallelSDK.getInstance().SDKInit(C);
-        AbstractLua L1=parallelSDK.getInstance().LuaNewState();
 
-        AbstractLua L2=parallelSDK.getInstance().LuaNewState();
+        parallelSDK.getInstance().luaRunOnMain("test/worker_thread_invoke");
+        parallelSDK.getInstance().luaRunOnMain("test/task_thread_test");
+        parallelSDK.getInstance().luaRunOnMain("test/java_object_callback");
 
-//        Runnable r=new Runnable() {
-//            @Override
-//            public void run() {
-//
-//            }
-//        };
-//        Thread t=new Thread(r);
-//        t.start();
-        long start=System.currentTimeMillis();
-        while(((SafeLua53) L1)._handler==null ||((SafeLua53) L2)._handler==null);
-        long end=System.currentTimeMillis();
-
-        Log.i("Time",String.valueOf(end-start));
-
-        ((SafeLua53) L1)._handler.post(new Runnable() {
-               @Override
-               public void run() {
-                   Log.d("Lua"+String.valueOf(L1.getId()),"init done");
-                   L1.loadExternal("test/java_object_send");
-                   L1.pCall(0,0);
-               }
-           }
-        );
-
-        ((SafeLua53)L2)._handler.post(new Runnable() {
-            @Override
-            public void run() {
-                Log.d("Lua"+String.valueOf(L2.getId()),"init done");
-//                L2.loadExternal("d_s");
-//                L2.pCall(0,0);
-            }
-        });
         // Example of a call to a native method
         TextView tv = binding.sampleText;
         String content="hello world from c++!!!!!";

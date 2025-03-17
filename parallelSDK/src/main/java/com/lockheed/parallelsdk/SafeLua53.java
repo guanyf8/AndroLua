@@ -54,9 +54,6 @@ public class SafeLua53 extends Lua53 {
 
     @Override
     public void run(String script) throws LuaException {
-        Log.d("run"+getId(),"prerun");
-        while(_handler==null);
-        Log.d("run"+getId(),"pass while");
         _handler.post(new Runnable() {
             @Override
             public void run() {

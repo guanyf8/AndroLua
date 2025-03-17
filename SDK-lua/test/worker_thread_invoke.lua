@@ -8,7 +8,7 @@ local vm=require("cross_vm")
 local thread=require("threadAPI")
 local stt=thread.newState()
 
-local recv=vm.cross_vm_require(stt,"test.java_object_recv")
+local recv=vm.cross_vm_require(stt,"test.worker_thread_exec")
 
 recv.test("mike",18,function(arg,callback_)
     print("hahaha:"..arg)

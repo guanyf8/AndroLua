@@ -32,6 +32,7 @@ int luathread_new(lua_State* L){
 
 void* free_thread(int id){
     QueueClose(id);
+    hashErase(queue_record,id);
     JNIEnv *env;
     (*jvm)->AttachCurrentThread(jvm,&env, NULL);
     jclass clazz = (*env)->FindClass(env,"com/lockheed/parallelsdk/parallelSDK");

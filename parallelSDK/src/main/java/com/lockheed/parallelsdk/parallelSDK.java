@@ -23,7 +23,7 @@ import party.iroiro.luajava.Lua;
 //需要在主线程进行初始化，需要MainLua来做一些事情
 public class parallelSDK {
     static parallelSDK instance=null;
-    AbstractLua MainLua;   //记录SDK持有的主lua state
+    SafeLua53 MainLua;   //记录SDK持有的主lua state
     TreeMap<Integer,Long> StateThreadTree;
     ThreadPoolExecutor TaskPool;
     Context C;
@@ -53,9 +53,20 @@ public class parallelSDK {
 
     public boolean SDKInit(Context context){
         C=context;
-        MainLua=LuaNewState(Looper.getMainLooper());
+        MainLua= (SafeLua53) LuaNewState(Looper.getMainLooper());
 //        StateThreadTree.put(MainLua.getId(), MainLua.getPointer());
         return MainLua!=null;
+    }
+
+    public void luaRunOnMain(String trunk){
+        MainLua._handler.post(new Runnable() {
+           @Override
+           public void run() {
+               Log.d("Lua"+String.valueOf(MainLua.getId()),"init done");
+               MainLua.loadExternal(trunk);
+               MainLua.pCall(0,0);
+           }
+       });
     }
 
     private AbstractLua LuaNewState(Looper looper){
