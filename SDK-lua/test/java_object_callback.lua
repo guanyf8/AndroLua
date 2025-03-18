@@ -19,6 +19,7 @@ local callback_function={
     end
 }
 
+-- 三行可以合成一个函数
 local callback=java.proxy('com.lockheed.parallelLJ.callback',callback_function)
 local handler=java.import('com.lockheed.parallelsdk.LuaCallbackDispatcher')
 local proxy=handler:bind(callback)
