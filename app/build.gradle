@@ -68,8 +68,8 @@ dependencies {
     implementation libs.constraintlayout
     implementation project(':luajava')
     implementation project(':lua53')
-    implementation project(":parallelSDK")
-//    implementation files("../lib/luajava-4.0.3-SNAPSHOT.jar")
+    implementation project(':androLuaSDK')
+    //    implementation files("../lib/luajava-4.0.3-SNAPSHOT.jar")
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

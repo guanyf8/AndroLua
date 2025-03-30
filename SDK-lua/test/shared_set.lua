@@ -16,5 +16,18 @@ local t={
 }
 
 _shared.wtlock()
+print("in "..ID.."value \"a\" is",t)
 _SHARED.a=t
 _shared.unlock()
+
+local th=require("threadAPI")
+local cvm=require("cross_vm")
+
+local state=th.newState()
+local remote=cvm.cross_vm_require(state,"test.shared_get")
+remote.export()
+
+local state2=th.newState()
+local remote2=cvm.cross_vm_require(state2,"test.shared_get")
+remote2.export2()
+

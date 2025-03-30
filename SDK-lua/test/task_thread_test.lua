@@ -10,19 +10,16 @@ local thread=require("threadAPI")
 
 local rc={}
 for i=1,10 do
-    rc[i]=thread.run(function(tt)
-        print("in runnable I can fly"..ID..tt)
-        return ID,tt
+    rc[i]=thread.run(function(number)
+        print("I am thread "..ID..", "..number.." thread created")
+        return ID,"return"..tostring(number)
     end,i)
 end
-
-print("now wait")
-thread.wait()
 
 local m={}
 for i=1,10 do
     m[i]={thread.join(rc[i])}
 end
 
-print(m)
+print("return collected: ", m)
 print("join done")

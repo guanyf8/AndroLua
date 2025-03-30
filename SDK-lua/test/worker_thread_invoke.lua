@@ -8,16 +8,17 @@ local vm=require("cross_vm")
 local thread=require("threadAPI")
 
 -- 创建一个拥有独立线程的独立虚拟机
-local stt=thread.newState()
-local recv=vm.cross_vm_require(stt,"test.worker_thread_exec")
+local target_state=thread.newState()
+local remote_pkg=vm.cross_vm_require(target_state,"test.worker_thread_exec")
 
 -- worker间唯一的调用形式，即rpc传参
-recv.test("mike",18,function(arg,callback_)
-    print("hahaha:"..arg)
-    callback_("callback in ABB")
-end,{b=6,a=function(arg)
-    print(arg)
-end})
+remote_pkg.test("mike",18, function(arg,callback_)
+                            print("callback in origin: "..arg)
+                            callback_("tell you I get callback")
+                           end,
+                            {b=6,a=function(arg)
+                                        print("testing function in table: "..arg)
+                                    end})
 
 -- 需要关闭虚拟机时手动回收，一般不需要
--- thread.close(stt)
+-- thread.closeState(target_state,contacts[target_state])

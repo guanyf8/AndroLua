@@ -27,8 +27,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ParallelLJ"
+rootProject.name = "AndroLua"
 include ":app",
         ":lua53",
         ":luajava"
-include ':parallelSDK'
+include ':androLuaSDK'

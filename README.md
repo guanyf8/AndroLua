@@ -1,6 +1,6 @@
-# ParallelLJ
+# AndroLua
 
-parallelLJ 是一个基于安卓平台的lua-java的多线程库，旨在引入luajava的情况下确保线程安全，同时完善其不具备的多线程能力。
+AndroLua 是一个基于安卓平台的lua-java的多线程库，旨在引入luajava的情况下确保线程安全，同时完善其不具备的多线程能力。
 
 ## 模型架构
 
@@ -35,3 +35,9 @@ lua vm存在于C层中，每个worker由java层和lua层组成，java层负责�
 [跳转shared_set.lua](./SDK-lua/test/shared_set.lua)
 
 [跳转shared_get.lua](./SDK-lua/test/shared_get.lua)
+
+
+## todo
+* 共享内存的节点锁
+* task线程要创建一个轻量luaState，没有创建worker的能力，赋予FFI能力但禁止异步调用
+* task线程主调worker挂起worker使用JNI向JVM发信号停止和恢复某个线程。

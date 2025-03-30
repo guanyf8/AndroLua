@@ -13,14 +13,16 @@ local M={}
 --
 --local name=a:getName()
 --local age=a:getAge()
+local th=require("threadAPI")
 
 M.test=function(name,age,callback,t)
     print("the object name is "..name.." age is "..age)
-    print(callback)
-    callback("nice",function(args)
-        print("response:"..args)
+    callback("success",function(args)
+        print("response: "..args)
     end)
-    t.a("surprise")
+    t.a("SUCCESS!!")
 end
+
+print("invoke done")
 
 return M

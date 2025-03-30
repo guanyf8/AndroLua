@@ -3,47 +3,56 @@
 --- Created by guan.
 --- DateTime: 2025/3/4 10:00
 ---
+
+local contacts=require("contacts")
 local cvm=require("cross_vm")
 local m={}
 
-m.service={}
-
-m.subthread={}
-
 --可以收获一个具名线程，
 m.newState =function()
-    local id=_thread.new()
-    m.service[id]=1
+    local id,q=_thread.new()
+    contacts[id]=q
     return id
 end
 
---不能自己回收自己
-m.closeState =function(id)
-    if id==ID then
-        error("recycle self not allowed")
+
+m.closeState =function(id,queue)
+    if id==nil then
+        id=ID
+        queue=tqueue
     end
-    m.service[id]=nil
-    _thread.free(id)
+    if id==0 then
+        return nil
+    end
+
+    local buf,_sz=_seri.pack(id,queue)
+    -- 交给mainLua回收
+    _thread.post(buf,contacts[0],0,cvm.TYPE_TERMINATE)
 end
+
+m.introduce=function(id,to)
+    if contacts[id]==nil then
+        return
+    end
+    _thread.post(_seri.pack(id,contacts[id]),contacts[to],to,cvm.TYPE_INTRODUCE)
+end
+
+local task={}
 
 --第一个为runnable，后面为接收的参数
 --新建一个匿名线程，执行完就回收
 m.run=function(runnable,...)
-    local id=m.newState()
-    local meta=_sched.fork(id)
-    local b,_sz=_seri.pack(meta,runnable,{...})
+    --local id=m.newState()
+    local id=_sched.fork(runnable,...)
+    --local b,_sz=_seri.pack(meta,runnable,{...})
     --print("in run"..tostring(id))
-    _thread.post(b,_sz,id,cvm.TYPE_RUN)
-
+    --_thread.post(b,_sz,id,cvm.TYPE_RUN)
+    task[id]=1
     return id
 end
 
 m.join=function(id)
     return _sched.join(id)
-end
-
-m.wait=function()
-    _sched.wait()
 end
 
 return m

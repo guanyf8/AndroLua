@@ -4,20 +4,28 @@
 --- DateTime: 2025/3/4 9:41
 ---
 
+local contacts=require("contacts")
+
 local MAIN_STATE=0
 
 local TYPE_RUN=0
 local TYPE_INVOKE=1
 local TYPE_CALLBACK=2
-local TYPE_RETURN=3
+local TYPE_INTRODUCE=3
+local TYPE_TERMINATE=4
 
 local M={}
+M.TYPE_INVOKE=1
+M.TYPE_CALLBACK=2
+M.TYPE_INTRODUCE=3
+M.TYPE_TERMINATE=4
 
 local invoke_tool
 local callback_tool
 local runreturn_tool
 
 invoke_tool=function(module,name,...)
+    --print(module,name,...)
     require(module)[name](...)
 end
 
@@ -33,43 +41,47 @@ runreturn_tool=function(status,...)
     _schdl.sig()
 end
 
-local table_preprocess
-table_preprocess=function(t)
+local table_check
+table_check=function(t)
     --此处用pairs
     for k,v in pairs(t) do
         if type(v)=="function" then
             local a={id=_thread.callback_reg(v),
-                     source=ID}
+                     source=ID,
+                    queue=tqueue}
             setmetatable(a,{
                 __call=_thread.callback_proxy
             })
             t[k]=a
         elseif type(v)=="table" then
-            table_preprocess(v)
+            table_check(v)
         end
     end
 end
 
-local parameter_preprocess=function(...)
+local args_check=function(...)
     local temptable={...}
     --为确保传参顺序必须用ipairs，这是唯一与上述工具函数的区别
     for k,v in ipairs(temptable) do
         --如果有表格要递归进去找function
-        print(k,v)
+        --print(k,v)
         if type(v)=="function" then
             local a={id=_thread.callback_reg(v),
-                     source=ID}
+                     source=ID,
+                    queue=tqueue}
             setmetatable(a,{
                 __call=_thread.callback_proxy
             })
             temptable[k]=a
         --todo 测试lua fucntion能不能传
         elseif type(v)=="table" then
-            table_preprocess(v)
+            table_check(v)
         end
     end
     return table.unpack(temptable)
 end
+
+local proxy_gen=args_check
 
 M.cross_vm_require= function(target_id,module)
     local proxy={}
@@ -77,26 +89,59 @@ M.cross_vm_require= function(target_id,module)
         __index = function(tb,key)
             return function(...)
                 --为了保证初始调用线程被通知到，回调函数必须代理在初始线程调用
-                local b,_sz=_seri.pack(module,key,parameter_preprocess(...))
-                _thread.post(b,_sz,target_id,TYPE_INVOKE)
+                local b,_sz=_seri.pack(module,key,args_check(...))
+                _thread.post(b,contacts[target_id],target_id,TYPE_INVOKE)
             end
         end
         })
     return proxy
 end
 
+
+
 --用于tick时读取任务
-M.analyzer=function(buffer,sz,target_id,type)
-    print(target_id,type)
+M.executer=function(buffer,q,target_id,type)
+    --print(target_id,type)
     if target_id==ID then
         if type==TYPE_INVOKE then
             invoke_tool(_seri.unpack_remove(buffer))
         elseif type==TYPE_CALLBACK then
             callback_tool(_seri.unpack_remove(buffer))
-        elseif type==TYPE_RUN then
-            local meta,runnable,arg_list=_seri.unpack_remove(buffer)
-            local buf,sz=_seri.pack(runnable(table.unpack(arg_list)))
-            _sched.ret(meta,buf)
+        elseif type==TYPE_INTRODUCE then
+             local id,newq=_seri.unpack_remove(buffer)
+            contacts[id]=newq
+            --print("introduce new friend, happy!!")
+            --print(id,contacts)
+        --    todo 对于线程池有用
+        --elseif type==TYPE_RUN then
+        --    local meta,runnable,arg_list=_seri.unpack_remove(buffer)
+        --    local buf,sz=_seri.pack(runnable(table.unpack(arg_list)))
+        --    _sched.ret(meta,buf)
+        elseif type==TYPE_TERMINATE then
+            if ID==0 then
+                local id,deadq=_seri.unpack_remove(buffer)
+                local i=0
+                for k,v in pairs(contacts) do
+                    i=i+1
+                    local cb_proxy=proxy_gen(function()
+                        i=i-1
+                        if i==0 then
+                            --print("you really die now: "..tostring(id))
+                            _thread.free(id,deadq)
+                            contacts[id]=nil
+                        end
+                    end)
+                    local pkg=_seri.pack(id,cb_proxy)
+                    _thread.post(pkg,v,k,TYPE_TERMINATE)
+                end
+            else
+                local id,cb=_seri.unpack_remove(buffer)
+                --print("sad to hear about that, bye bye "..tostring(id),contacts[id])
+
+                contacts[id]=nil
+                --print("after clean ",contacts[id])
+                cb()
+            end
         end
     else
     --    todo 发错地方了，要重传

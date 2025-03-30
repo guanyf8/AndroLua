@@ -2,11 +2,8 @@ package com.lockheed.parallelLJ;
 
 import android.util.Log;
 
-import com.lockheed.parallelsdk.LuaCallbackDispatcher;
-
 import java.util.HashMap;
 import java.util.Map;
-import com.lockheed.parallelLJ.callback;
 
 public class Util {
     static class message{

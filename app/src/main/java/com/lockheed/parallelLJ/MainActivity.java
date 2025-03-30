@@ -3,36 +3,13 @@ package com.lockheed.parallelLJ;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
-import android.content.res.AssetManager;
 import android.os.Bundle;
-import android.os.Looper;
-import android.util.Log;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.lockheed.androlua.androLuaSDK;
 import com.lockheed.parallelLJ.databinding.ActivityMainBinding;
-
-import org.jetbrains.annotations.Nullable;
-
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.util.Timer;
-
-import party.iroiro.luajava.AbstractLua;
-import party.iroiro.luajava.ClassPathLoader;
-import party.iroiro.luajava.ExternalLoader;
-import party.iroiro.luajava.Lua;
-import party.iroiro.luajava.LuaNatives;
-import party.iroiro.luajava.lua53.Lua53;
-import party.iroiro.luajava.lua53.Lua53Natives;
-
-import com.lockheed.parallelsdk.SafeLua53;
-import com.lockheed.parallelsdk.parallelSDK;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -52,11 +29,51 @@ public class MainActivity extends AppCompatActivity {
         C=this.getApplicationContext();
 
         //init
-        parallelSDK.getInstance().SDKInit(C);
+        androLuaSDK.getInstance().SDKInit(C);
 
-        parallelSDK.getInstance().luaRunOnMain("test/worker_thread_invoke");
-        parallelSDK.getInstance().luaRunOnMain("test/task_thread_test");
-        parallelSDK.getInstance().luaRunOnMain("test/java_object_callback");
+        setContentView(R.layout.activity_main);
+
+        // 获取按钮引用
+        Button btn1 = findViewById(R.id.btn1);
+        Button btn2 = findViewById(R.id.btn2);
+        Button btn3 = findViewById(R.id.btn3);
+        Button btn4 = findViewById(R.id.btn4);
+        Button btn5 = findViewById(R.id.btn5);
+        Button btn6 = findViewById(R.id.btn6);
+        Button btn7 = findViewById(R.id.btn7);
+
+        // 按钮1点击事件 - 显示Toast
+        btn1.setOnClickListener(v -> {
+            androLuaSDK.getInstance().luaRunOnMain("test/worker_thread_invoke");
+        });
+
+        // 按钮2点击事件 - 跳转新页面
+        btn2.setOnClickListener(v -> {
+            androLuaSDK.getInstance().luaRunOnMain("test/task_thread_test");
+        });
+
+        // 按钮3点击事件 - 改变背景颜色
+        btn3.setOnClickListener(v -> {
+            androLuaSDK.getInstance().luaRunOnMain("test/shared_set");
+        });
+
+        // 按钮4点击事件 - 关闭当前页面
+        btn4.setOnClickListener(v -> {
+            androLuaSDK.getInstance().luaRunOnMain("test/cross_vm_ffi");
+        });
+
+        btn5.setOnClickListener(v -> {
+            androLuaSDK.getInstance().luaRunOnMain("test/pressure1");
+        });
+
+        btn6.setOnClickListener(v -> {
+            androLuaSDK.getInstance().luaRunOnMain("test/pressure2");
+        });
+
+        btn7.setOnClickListener(v -> {
+            androLuaSDK.getInstance().luaRunOnMain("test/create_and_close");
+        });
+
 
         // Example of a call to a native method
         TextView tv = binding.sampleText;

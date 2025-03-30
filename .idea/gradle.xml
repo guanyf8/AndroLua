@@ -10,10 +10,10 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/androLuaSDK" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/lua53" />
             <option value="$PROJECT_DIR$/luajava" />
-            <option value="$PROJECT_DIR$/parallelSDK" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />
