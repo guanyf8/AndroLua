@@ -10,7 +10,7 @@
 #include "lauxlib.h"
 #include "lua-seri.h"
 #include "JNInfo.h"
-#include "TaskQueue.h"
+#include "MsgQueue.h"
 #include <jni.h>
 
 typedef struct task_struct{

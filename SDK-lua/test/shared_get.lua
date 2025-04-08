@@ -9,9 +9,9 @@ local m={}
 m.export=function()
     for i=1,10 do
         local h=0
-        _shared.rdlock()
+        --_shared.rdlock()
         print("In "..ID.." the value is",_SHARED.a)
-        _shared.unlock()
+        --_shared.unlock()
         for j=1,100000 do
             h=h+1
         end
@@ -19,10 +19,10 @@ m.export=function()
 end
 
 m.export2=function()
-    _shared.wtlock()
+    --_shared.wtlock()
     print("In "..ID.." change value")
-    _SHARED.a=2
-    _shared.unlock()
+    _SHARED.a=math.random()
+    --_shared.unlock()
 end
 
 return m

@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btn6.setOnClickListener(v -> {
-            androLuaSDK.getInstance().luaRunOnMain("test/pressure2");
+            androLuaSDK.getInstance().luaRunOnMain("test/pressure_shared");
         });
 
         btn7.setOnClickListener(v -> {

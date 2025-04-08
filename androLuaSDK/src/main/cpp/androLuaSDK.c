@@ -9,7 +9,7 @@
 #include <jni.h>
 #include <string.h>
 #include <android/log.h>
-#include "TaskQueue.h"
+#include "MsgQueue.h"
 #include "Thread.h"
 #include "TaskSched.h"
 #include "JNInfo.h"

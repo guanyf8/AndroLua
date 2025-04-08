@@ -95,6 +95,7 @@ static inline struct page * rb_insert_page_cache(struct inode * inode,
 #define	_LINUX_RBTREE_H
 
 #include <stddef.h>
+#include <pthread.h>
 
 struct rb_node
 {
@@ -109,13 +110,14 @@ struct rb_node
 struct rb_root
 {
 	struct rb_node *rb_node;
+    pthread_rwlock_t lock;
 };
 
 #define typeof __typeof__
 #define container_of(ptr, type, member) ({                   \
 	const typeof( ((type *)0)->member ) *__mptr = (ptr); \
 	(type *)( (char *)__mptr - offsetof(type,member) );})
-#define RB_ROOT	(struct rb_root) { NULL, }
+#define RB_ROOT	(struct rb_root) { NULL, PTHREAD_RWLOCK_INITIALIZER}
 #define	rb_entry(ptr, type, member) container_of(ptr, type, member)
 
 extern void rb_insert_color(struct rb_node *, struct rb_root *);

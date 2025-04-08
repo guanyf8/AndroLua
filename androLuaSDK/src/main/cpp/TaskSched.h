@@ -18,7 +18,7 @@ typedef struct {
 
 typedef struct ThreadBundle{
     int parent;         //线程所有者，返回值去往的地方
-    Map* threads;  //子线程id对应的返回值buffer
+    map* threads;  //子线程id对应的pid buffer
     int bundle_size;
 } threadBundle;
 

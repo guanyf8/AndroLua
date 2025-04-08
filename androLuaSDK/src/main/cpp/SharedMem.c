@@ -4,34 +4,24 @@
 
 #include <bits/stdatomic.h>
 #include "SharedMem.h"
+#include "JNInfo.h"
 
 static atomic_char flag=1;
-Map* SharedCache;
-pthread_rwlock_t cache_mutex;
+map* SharedCache;
+pthread_rwlock_t cache_mutex=PTHREAD_RWLOCK_INITIALIZER;
 
 void SharedCacheInit(){
     SharedCache=map_init(NULL);
-//    SharedCache= (std::map<const char*, CacheEntry *,cmp_str>*)malloc(sizeof(std::map<const char*,CacheEntry *,cmp_str>));
-    pthread_rwlock_init(&cache_mutex, NULL);
 }
-
-
 
 void SharedCacheFree(){
     map_free(SharedCache);
 }
 
-
-//new_index进来
-void* getpackbuffer(lua_State* L,int from,int* sz){
-    //todo : 对function要特殊处理，上值只能访问共享内存的值
-    return seri_pack(L, from, sz);
-}
-
 int lua_sharedindex(lua_State* L){
     //只会有一个变量在buffer里面
     int ret=1;
-    CacheEntry * entry= map_find(SharedCache, (void*)lua_tostring(L,-1));
+    CacheEntry * entry= map_get(SharedCache, (union key_type)lua_tostring(L, -1));
     if(entry){
         ret = seri_unpack(L, entry->buffer);
     }else {
@@ -47,17 +37,25 @@ int lua_sharednewindex(lua_State* L){
     const char* str = lua_tolstring(L, 2, &len);
     const char* dst = (const char*) malloc(len+1);
     memcpy(dst,str,len+1);
+    CacheEntry * e= map_get(SharedCache, (union key_type) dst);
 
-    void* buf= getpackbuffer(L,2,&size);
-    CacheEntry * e= map_find(SharedCache,(void*)dst);
+    if(lua_isnil(L,3)){
+        //delete
+        map_erase(SharedCache,(union key_type)dst);
+        return 1;
+    }
+
+    void* buf= seri_pack(L,2,&size);
+
     if(e==NULL){
         //insert
         e=(CacheEntry*) malloc(sizeof(CacheEntry));
         e->buffer=buf;
-        pthread_mutex_init(&e->mutex,NULL);
-        map_insert(SharedCache,(void*)dst,(void*)e);
+        map_node * n=new(map_node);
+        n->key=(union key_type)dst;
+        n->value=e;
+        map_insert(SharedCache,n);
     }else{
-        e= (CacheEntry *)map_find(SharedCache,(void*)dst);
         //update
         if(!memcmp(e->buffer,buf,size))
             return 0;
@@ -69,14 +67,17 @@ int lua_sharednewindex(lua_State* L){
 
 int luashared_rwwlock(lua_State* L){
     pthread_rwlock_wrlock(&cache_mutex);
+    return 0;
 }
 
 int luashared_rwrlock(lua_State* L){
     pthread_rwlock_rdlock(&cache_mutex);
+    return 0;
 }
 
 int luashared_rwunlock(lua_State* L){
     pthread_rwlock_unlock(&cache_mutex);
+    return 0;
 }
 
 //写入shared的全局表

@@ -70,9 +70,6 @@ void* luasched_task(void* temp){
         luaL_error(L,str);
     } else {
         //栈里除了最底下，全是返回值
-        int t= lua_gettop(L);
-        int a= lua_tointeger(L,2);
-        int b= lua_tointeger(L,3);
         lua_pushcfunction(L,luaseri_pack);
         lua_replace(L,1);
         lua_pcall(L, lua_gettop(L)-1,2,0);
@@ -91,7 +88,6 @@ static int pthread_exec(lua_State* L ,pthread_t* pid,void* buf){
 }
 
 int luasched_fork(lua_State* L){
-    int a= lua_gettop(L);
     //fork(runnable,...)
     luaseri_pack(L);
     lua_pop(L,1);
@@ -118,15 +114,16 @@ int luasched_fork(lua_State* L){
     pthread_exec(pair->s,pid,args);
 
     //新建图节点
-    int* key=(int*) malloc(sizeof(int));
-    *key = pair->id;
+    map_node* n=new(map_node);
+    n->key.num=pair->id;
+    n->value=pid;
     //todo 注意非线程安全，但没有关系因为只有一个线程在操纵它
-    map_insert(tbun->threads, key, (void*)pid);
+    map_insert(tbun->threads, n);
     tbun->bundle_size++;
-    free(pair);
 
     //回传id
-    lua_pushinteger(L,*key);
+    lua_pushinteger(L,pair->id);
+    free(pair);
     return 1;
 }
 
@@ -140,12 +137,12 @@ int luasched_join(lua_State* L){
         luaL_error(L, "threadBundle not initialized");
         return 0;
     }
-    pthread_t * t=map_find(tbun->threads,&join_id);
+    pthread_t * t= map_get(tbun->threads, (union key_type)join_id);
     void* buf;
     pthread_join(*t,&buf);
 
     //清理线程树的节点
-    map_erase(tbun->threads,&join_id);
+    map_erase(tbun->threads,(union key_type)join_id);
 
     tbun->bundle_size--;
 

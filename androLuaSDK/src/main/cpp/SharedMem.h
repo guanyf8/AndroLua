@@ -15,7 +15,7 @@ typedef struct SharedValue;
 
 typedef struct{
     SharedValue* array_part;
-    std::map<const char*,SharedValue*,cmp_str>* hash_part;
+    std::map_node<const char*,SharedValue*,cmp_str>* hash_part;
 } Table;
 
 typedef struct SharedValue {
@@ -37,12 +37,11 @@ int Shared2Lua(const char* key);
 
 //暂时不考虑gc机制
 typedef struct{
-    pthread_mutex_t mutex;
     int ref_count;
     void* buffer;
 } CacheEntry;
 
-extern Map* SharedCache;
+extern map* SharedCache;
 extern pthread_rwlock_t cache_mutex;
 
 extern void SharedCacheInit();
